@@ -142,6 +142,27 @@
             </div>
         </div>
         
+        {% if current_user.role == 'admin' and relatorios_pendentes > 0 %}
+        <div class="card mt-3">
+            <div class="card-header">
+                <h5><i class="fas fa-exclamation-triangle text-warning me-2"></i>Workflow Admin</h5>
+            </div>
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center mb-2">
+                    <span>Relatórios Pendentes</span>
+                    <span class="badge bg-warning text-dark">{{ relatorios_pendentes }}</span>
+                </div>
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <span>Relatórios Reprovados</span>
+                    <span class="badge bg-danger">{{ relatorios_reprovados }}</span>
+                </div>
+                <a href="{{ url_for('admin_reports', status='pendente') }}" class="btn btn-warning btn-sm w-100">
+                    <i class="fas fa-tasks me-1"></i>Gerenciar Aprovações
+                </a>
+            </div>
+        </div>
+        {% endif %}
+
         <div class="card mt-3">
             <div class="card-header">
                 <h5><i class="fas fa-plus me-2"></i>Ações Rápidas</h5>
@@ -154,6 +175,9 @@
                     {% if current_user.role == 'admin' %}
                     <a href="{{ url_for('projects') }}" class="btn btn-outline-secondary">
                         <i class="fas fa-building me-1"></i>Gerenciar Obras
+                    </a>
+                    <a href="{{ url_for('admin_checklists') }}" class="btn btn-outline-success">
+                        <i class="fas fa-check-square me-1"></i>Checklists
                     </a>
                     {% endif %}
                 </div>

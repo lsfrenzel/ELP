@@ -122,7 +122,26 @@
                     
                     <div class="mb-3">
                         <label for="endereco" class="form-label">Endereço</label>
-                        <textarea class="form-control" id="endereco" name="endereco" rows="2"></textarea>
+                        <textarea class="form-control" id="endereco" name="endereco" rows="2" 
+                                  placeholder="Endereço completo da obra"></textarea>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label">Localização GPS</label>
+                        <div class="row">
+                            <div class="col-md-8">
+                                <input type="text" class="form-control" id="endereco_gps" name="endereco_gps" 
+                                       placeholder="Clique em 'Obter Localização GPS' para capturar" readonly>
+                            </div>
+                            <div class="col-md-4">
+                                <button type="button" class="btn btn-outline-primary w-100" id="getLocationBtn">
+                                    <i class="fas fa-map-marker-alt me-1"></i>GPS
+                                </button>
+                            </div>
+                        </div>
+                        <input type="hidden" id="latitude_obra" name="latitude_obra">
+                        <input type="hidden" id="longitude_obra" name="longitude_obra">
+                        <small class="text-muted">As coordenadas GPS serão capturadas automaticamente</small>
                     </div>
                     
                     <div class="mb-3">
@@ -156,6 +175,62 @@ document.addEventListener('DOMContentLoaded', function() {
             this.style.transform = 'translateY(0)';
         });
     });
+});
+
+// GPS functionality
+document.getElementById('getLocationBtn').addEventListener('click', function() {
+    const btn = this;
+    const originalText = btn.innerHTML;
+    
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>Localizando...';
+    btn.disabled = true;
+    
+    if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(
+            async function(position) {
+                const lat = position.coords.latitude;
+                const lng = position.coords.longitude;
+                
+                document.getElementById('latitude_obra').value = lat;
+                document.getElementById('longitude_obra').value = lng;
+                
+                // Try to get address from coordinates
+                try {
+                    const response = await fetch(`https://api.opencagedata.com/geocode/v1/json?q=${lat}+${lng}&key=YOUR_API_KEY`);
+                    if (response.ok) {
+                        const data = await response.json();
+                        if (data.results && data.results.length > 0) {
+                            document.getElementById('endereco_gps').value = data.results[0].formatted;
+                        } else {
+                            document.getElementById('endereco_gps').value = `Lat: ${lat.toFixed(6)}, Lng: ${lng.toFixed(6)}`;
+                        }
+                    } else {
+                        document.getElementById('endereco_gps').value = `Lat: ${lat.toFixed(6)}, Lng: ${lng.toFixed(6)}`;
+                    }
+                } catch (error) {
+                    document.getElementById('endereco_gps').value = `Lat: ${lat.toFixed(6)}, Lng: ${lng.toFixed(6)}`;
+                }
+                
+                btn.innerHTML = originalText;
+                btn.disabled = false;
+            },
+            function(error) {
+                console.error('Erro ao obter localização:', error);
+                alert('Não foi possível obter a localização. Verifique as permissões do navegador.');
+                btn.innerHTML = originalText;
+                btn.disabled = false;
+            },
+            {
+                enableHighAccuracy: true,
+                timeout: 10000,
+                maximumAge: 60000
+            }
+        );
+    } else {
+        alert('Geolocalização não é suportada por este navegador.');
+        btn.innerHTML = originalText;
+        btn.disabled = false;
+    }
 });
 
 // Pre-select project from URL parameter

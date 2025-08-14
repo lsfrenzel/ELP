@@ -93,7 +93,12 @@ with app.app_context():
     
     # Create a sample construction project if none exists
     from models import Obra
-    if not Obra.query.first():
+    try:
+        sample_obra_exists = Obra.query.first()
+    except:
+        sample_obra_exists = None
+    
+    if not sample_obra_exists:
         sample_obra = Obra()
         sample_obra.nome = 'Edifício Comercial - Centro'
         sample_obra.tipo = 'Edifício Comercial'

@@ -1,0 +1,202 @@
+{% extends "base.html" %}
+
+{% block title %}Criar Checklist - ELP Obras{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col">
+        <div class="d-flex justify-content-between align-items-center">
+            <div>
+                <h1><i class="fas fa-plus me-2"></i>Criar Checklist</h1>
+                <p class="text-muted">Crie um novo checklist para auditoria de obras</p>
+            </div>
+            <a href="{{ url_for('admin_checklists') }}" class="btn btn-outline-secondary">
+                <i class="fas fa-arrow-left me-1"></i>Voltar
+            </a>
+        </div>
+    </div>
+</div>
+
+<form method="POST" id="checklistForm">
+    <div class="row">
+        <div class="col-lg-8">
+            <div class="card">
+                <div class="card-header">
+                    <h5><i class="fas fa-info-circle me-2"></i>Informações Básicas</h5>
+                </div>
+                <div class="card-body">
+                    <div class="mb-3">
+                        <label for="nome" class="form-label">Nome do Checklist *</label>
+                        <input type="text" class="form-control" id="nome" name="nome" required
+                               placeholder="Ex: Auditoria de Segurança">
+                    </div>
+                </div>
+            </div>
+            
+            <div class="card mt-4">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5><i class="fas fa-list me-2"></i>Itens do Checklist</h5>
+                    <button type="button" class="btn btn-sm btn-primary" onclick="addChecklistItem()">
+                        <i class="fas fa-plus"></i> Adicionar Item
+                    </button>
+                </div>
+                <div class="card-body">
+                    <div id="checklistItems">
+                        <div class="checklist-item mb-3">
+                            <div class="row align-items-center">
+                                <div class="col-md-8">
+                                    <input type="text" class="form-control" name="campos" 
+                                           placeholder="Nome do item do checklist" required>
+                                </div>
+                                <div class="col-md-3">
+                                    <div class="form-check">
+                                        <input class="form-check-input obrigatorio-check" type="checkbox">
+                                        <label class="form-check-label">Obrigatório</label>
+                                    </div>
+                                </div>
+                                <div class="col-md-1">
+                                    <button type="button" class="btn btn-outline-danger btn-sm" onclick="removeChecklistItem(this)">
+                                        <i class="fas fa-trash"></i>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="alert alert-info">
+                        <i class="fas fa-info-circle me-2"></i>
+                        <strong>Dica:</strong> Marque como "Obrigatório" os itens que devem ser sempre verificados nos relatórios.
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-lg-4">
+            <div class="card">
+                <div class="card-header">
+                    <h5><i class="fas fa-eye me-2"></i>Pré-visualização</h5>
+                </div>
+                <div class="card-body">
+                    <div id="previewContainer">
+                        <p class="text-muted text-center">A pré-visualização aparecerá aqui conforme você adiciona itens</p>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="card mt-3">
+                <div class="card-body text-center">
+                    <button type="submit" class="btn btn-primary btn-lg">
+                        <i class="fas fa-save me-1"></i>Salvar Checklist
+                    </button>
+                    <a href="{{ url_for('admin_checklists') }}" class="btn btn-outline-secondary btn-lg ms-2">
+                        <i class="fas fa-times me-1"></i>Cancelar
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</form>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+let itemCount = 1;
+
+function addChecklistItem() {
+    const container = document.getElementById('checklistItems');
+    const newItem = document.createElement('div');
+    newItem.className = 'checklist-item mb-3';
+    
+    newItem.innerHTML = `
+        <div class="row align-items-center">
+            <div class="col-md-8">
+                <input type="text" class="form-control" name="campos" 
+                       placeholder="Nome do item do checklist" required>
+            </div>
+            <div class="col-md-3">
+                <div class="form-check">
+                    <input class="form-check-input obrigatorio-check" type="checkbox">
+                    <label class="form-check-label">Obrigatório</label>
+                </div>
+            </div>
+            <div class="col-md-1">
+                <button type="button" class="btn btn-outline-danger btn-sm" onclick="removeChecklistItem(this)">
+                    <i class="fas fa-trash"></i>
+                </button>
+            </div>
+        </div>
+    `;
+    
+    container.appendChild(newItem);
+    updatePreview();
+}
+
+function removeChecklistItem(button) {
+    if (document.querySelectorAll('.checklist-item').length > 1) {
+        button.closest('.checklist-item').remove();
+        updatePreview();
+    }
+}
+
+function updatePreview() {
+    const inputs = document.querySelectorAll('input[name="campos"]');
+    const checks = document.querySelectorAll('.obrigatorio-check');
+    const previewContainer = document.getElementById('previewContainer');
+    
+    if (inputs.length === 0 || !inputs[0].value) {
+        previewContainer.innerHTML = '<p class="text-muted text-center">A pré-visualização aparecerá aqui conforme você adiciona itens</p>';
+        return;
+    }
+    
+    let html = '<h6>Itens do Checklist</h6><ul class="list-group list-group-flush">';
+    
+    inputs.forEach((input, index) => {
+        if (input.value.trim()) {
+            const isRequired = checks[index].checked;
+            html += `
+                <li class="list-group-item d-flex justify-content-between align-items-center">
+                    ${input.value}
+                    ${isRequired ? '<span class="badge bg-warning text-dark">Obrigatório</span>' : ''}
+                </li>
+            `;
+        }
+    });
+    
+    html += '</ul>';
+    previewContainer.innerHTML = html;
+}
+
+// Update preview when inputs change
+document.addEventListener('input', function(e) {
+    if (e.target.name === 'campos') {
+        updatePreview();
+    }
+});
+
+document.addEventListener('change', function(e) {
+    if (e.target.classList.contains('obrigatorio-check')) {
+        updatePreview();
+    }
+});
+
+// Handle form submission to include obrigatorios
+document.getElementById('checklistForm').addEventListener('submit', function(e) {
+    // Clear any existing hidden inputs
+    document.querySelectorAll('input[name="obrigatorios"]').forEach(el => el.remove());
+    
+    // Add hidden inputs for required items
+    const checks = document.querySelectorAll('.obrigatorio-check');
+    const campos = document.querySelectorAll('input[name="campos"]');
+    
+    campos.forEach((campo, index) => {
+        if (campo.value.trim() && checks[index].checked) {
+            const hiddenInput = document.createElement('input');
+            hiddenInput.type = 'hidden';
+            hiddenInput.name = 'obrigatorios';
+            hiddenInput.value = campo.value.trim();
+            this.appendChild(hiddenInput);
+        }
+    });
+});
+</script>
+{% endblock %}

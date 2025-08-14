@@ -16,8 +16,8 @@ class User(UserMixin, db.Model):
     data_criacao = db.Column(db.DateTime, default=datetime.utcnow)
     
     # Relationships
-    obras_responsavel = db.relationship('Obra', backref='responsavel', lazy=True)
-    relatorios = db.relationship('Relatorio', backref='usuario', lazy=True)
+    obras_responsavel = db.relationship('Obra', backref='responsavel', lazy=True, foreign_keys='Obra.responsavel_id')
+    relatorios = db.relationship('Relatorio', backref='usuario', lazy=True, foreign_keys='Relatorio.usuario_id')
 
 class Obra(db.Model):
     __tablename__ = 'obras'
@@ -30,6 +30,9 @@ class Obra(db.Model):
     data_inicio = db.Column(db.Date)
     data_fim = db.Column(db.Date)
     endereco = db.Column(db.Text)
+    endereco_gps = db.Column(db.String(300))
+    latitude_obra = db.Column(db.Float)
+    longitude_obra = db.Column(db.Float)
     descricao = db.Column(db.Text)
     data_criacao = db.Column(db.DateTime, default=datetime.utcnow)
     
@@ -48,8 +51,11 @@ class Relatorio(db.Model):
     data = db.Column(db.Date, default=datetime.utcnow)
     atividades = db.Column(db.Text)
     checklist_json = db.Column(db.Text)
-    aprovador = db.Column(db.String(100))
-    status = db.Column(db.String(20), default='aberto')  # 'aberto', 'fechado'
+    aprovador_id = db.Column(db.Integer, db.ForeignKey('users.id'))
+    status = db.Column(db.String(20), default='pendente')  # 'pendente', 'aprovado', 'reprovado'
+    observacoes_admin = db.Column(db.Text)
+    prazo_revisao = db.Column(db.DateTime)
+    data_aprovacao = db.Column(db.DateTime)
     pdf_path = db.Column(db.String(200))
     latitude = db.Column(db.Float)
     longitude = db.Column(db.Float)
@@ -58,6 +64,7 @@ class Relatorio(db.Model):
     # Relationships
     fotos = db.relationship('Foto', backref='relatorio', lazy=True, cascade='all, delete-orphan')
     reembolso = db.relationship('Reembolso', backref='relatorio', uselist=False, cascade='all, delete-orphan')
+    aprovador = db.relationship('User', foreign_keys=[aprovador_id], backref='relatorios_aprovados')
     
     @property
     def checklist_data(self):

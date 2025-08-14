@@ -5,7 +5,7 @@ from werkzeug.security import check_password_hash, generate_password_hash
 from werkzeug.utils import secure_filename
 from PIL import Image
 import json
-from datetime import datetime, date
+from datetime import datetime, date, timedelta
 from functools import wraps
 
 from app import app, db, mail
@@ -103,13 +103,27 @@ def dashboard():
         obras = Obra.query.filter_by(responsavel_id=current_user.id).all()
         relatorios_recentes = Relatorio.query.filter_by(usuario_id=current_user.id).order_by(Relatorio.data_criacao.desc()).limit(5).all()
     
-    # Get alerts
-    alertas = Alerta.query.filter(Alerta.data_alerta >= datetime.now()).order_by(Alerta.data_alerta.asc()).limit(5).all()
+    # Get alerts for current user
+    if current_user.role == 'admin':
+        alertas = Alerta.query.filter(Alerta.data_alerta >= datetime.now()).order_by(Alerta.data_alerta.asc()).limit(5).all()
+        # Also get pending reports for approval
+        relatorios_pendentes = Relatorio.query.filter_by(status='pendente').count()
+        relatorios_reprovados = Relatorio.query.filter_by(status='reprovado', usuario_id=current_user.id).filter(
+            Relatorio.prazo_revisao >= datetime.now()).count() if current_user.role != 'admin' else 0
+    else:
+        # Get alerts for user's projects and overdue reports
+        user_obra_ids = [obra.id for obra in obras]
+        alertas = Alerta.query.filter(Alerta.obra_id.in_(user_obra_ids), Alerta.data_alerta >= datetime.now()).order_by(Alerta.data_alerta.asc()).limit(5).all()
+        relatorios_pendentes = 0
+        relatorios_reprovados = Relatorio.query.filter_by(status='reprovado', usuario_id=current_user.id).filter(
+            Relatorio.prazo_revisao >= datetime.now()).count()
     
     return render_template('dashboard.html', 
                          obras=obras, 
                          relatorios_recentes=relatorios_recentes,
-                         alertas=alertas)
+                         alertas=alertas,
+                         relatorios_pendentes=relatorios_pendentes if current_user.role == 'admin' else 0,
+                         relatorios_reprovados=relatorios_reprovados)
 
 @app.route('/admin')
 @login_required
@@ -118,11 +132,15 @@ def admin_panel():
     users_count = User.query.count()
     obras_count = Obra.query.count()
     relatorios_count = Relatorio.query.count()
+    checklists_count = Checklist.query.count()
+    relatorios_pendentes = Relatorio.query.filter_by(status='pendente').count()
     
     return render_template('admin_panel.html',
                          users_count=users_count,
                          obras_count=obras_count,
-                         relatorios_count=relatorios_count)
+                         relatorios_count=relatorios_count,
+                         checklists_count=checklists_count,
+                         relatorios_pendentes=relatorios_pendentes)
 
 @app.route('/projects')
 @login_required
@@ -147,6 +165,9 @@ def create_project():
     tipo = request.form.get('tipo')
     responsavel_id = request.form.get('responsavel_id')
     endereco = request.form.get('endereco')
+    endereco_gps = request.form.get('endereco_gps')
+    latitude_obra = request.form.get('latitude_obra')
+    longitude_obra = request.form.get('longitude_obra')
     descricao = request.form.get('descricao')
     
     obra = Obra()
@@ -154,6 +175,9 @@ def create_project():
     obra.tipo = tipo
     obra.responsavel_id = responsavel_id
     obra.endereco = endereco
+    obra.endereco_gps = endereco_gps
+    obra.latitude_obra = float(latitude_obra) if latitude_obra else None
+    obra.longitude_obra = float(longitude_obra) if longitude_obra else None
     obra.descricao = descricao
     
     db.session.add(obra)
@@ -241,7 +265,7 @@ def create_report():
     db.session.add(relatorio)
     db.session.commit()
     
-    flash('Relatório criado com sucesso!', 'success')
+    flash('Relatório criado com sucesso e enviado para aprovação!', 'success')
     return redirect(url_for('reports'))
 
 @app.route('/contacts')
@@ -397,3 +421,103 @@ def generate_report_pdf(report_id):
     except Exception as e:
         flash(f'Erro ao gerar PDF: {str(e)}', 'error')
         return redirect(url_for('reports'))
+
+# Admin workflow and checklist management routes
+@app.route('/admin/checklists')
+@login_required
+@admin_required
+def admin_checklists():
+    checklists = Checklist.query.all()
+    return render_template('admin_checklists.html', checklists=checklists)
+
+@app.route('/admin/checklists/create', methods=['GET', 'POST'])
+@login_required
+@admin_required
+def create_checklist():
+    if request.method == 'POST':
+        nome = request.form.get('nome')
+        campos = request.form.getlist('campos')
+        obrigatorios = request.form.getlist('obrigatorios')
+        
+        checklist = Checklist()
+        checklist.nome = nome
+        checklist.campos = [campo for campo in campos if campo.strip()]
+        checklist.obrigatorios = [obr for obr in obrigatorios if obr.strip()]
+        checklist.ativo = True
+        
+        db.session.add(checklist)
+        db.session.commit()
+        
+        flash(f'Checklist "{nome}" criado com sucesso!', 'success')
+        return redirect(url_for('admin_checklists'))
+    
+    return render_template('create_checklist.html')
+
+@app.route('/admin/reports')
+@login_required
+@admin_required
+def admin_reports():
+    status_filter = request.args.get('status', 'pendente')
+    
+    if status_filter == 'all':
+        relatorios = Relatorio.query.order_by(Relatorio.data_criacao.desc()).all()
+    else:
+        relatorios = Relatorio.query.filter_by(status=status_filter).order_by(Relatorio.data_criacao.desc()).all()
+    
+    return render_template('admin_reports.html', relatorios=relatorios, status_filter=status_filter)
+
+@app.route('/admin/reports/<int:relatorio_id>/approve', methods=['POST'])
+@login_required
+@admin_required
+def approve_report(relatorio_id):
+    relatorio = Relatorio.query.get_or_404(relatorio_id)
+    
+    relatorio.status = 'aprovado'
+    relatorio.aprovador_id = current_user.id
+    relatorio.data_aprovacao = datetime.now()
+    relatorio.observacoes_admin = request.form.get('observacoes', '')
+    
+    db.session.commit()
+    
+    flash('Relatório aprovado com sucesso!', 'success')
+    return redirect(url_for('admin_reports'))
+
+@app.route('/admin/reports/<int:relatorio_id>/reject', methods=['POST'])
+@login_required
+@admin_required
+def reject_report(relatorio_id):
+    relatorio = Relatorio.query.get_or_404(relatorio_id)
+    
+    observacoes = request.form.get('observacoes', '')
+    prazo_dias = int(request.form.get('prazo_dias', 7))
+    
+    relatorio.status = 'reprovado'
+    relatorio.aprovador_id = current_user.id
+    relatorio.observacoes_admin = observacoes
+    relatorio.prazo_revisao = datetime.now() + timedelta(days=prazo_dias)
+    
+    db.session.commit()
+    
+    # Create alert for the user
+    alerta = Alerta()
+    alerta.obra_id = relatorio.obra_id
+    alerta.descricao = f'Relatório #{relatorio.numero_seq:03d} foi reprovado e precisa ser revisado até {relatorio.prazo_revisao.strftime("%d/%m/%Y")}'
+    alerta.data_alerta = relatorio.prazo_revisao
+    alerta.status = 'pendente'
+    
+    db.session.add(alerta)
+    db.session.commit()
+    
+    flash(f'Relatório reprovado. Usuário tem até {relatorio.prazo_revisao.strftime("%d/%m/%Y")} para revisar.', 'warning')
+    return redirect(url_for('admin_reports'))
+
+@app.route('/api/checklists/<int:checklist_id>')
+@login_required
+def get_checklist_api(checklist_id):
+    checklist = Checklist.query.get_or_404(checklist_id)
+    return jsonify({
+        'id': checklist.id,
+        'nome': checklist.nome,
+        'campos': checklist.campos,
+        'obrigatorios': checklist.obrigatorios
+    })

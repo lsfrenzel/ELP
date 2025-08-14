@@ -1,0 +1,225 @@
+{% extends "base.html" %}
+
+{% block title %}Gestão de Relatórios - ELP Obras{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col">
+        <h1><i class="fas fa-file-alt me-2"></i>Gestão de Relatórios</h1>
+        <p class="text-muted">Sistema de aprovação e rejeição de relatórios</p>
+    </div>
+</div>
+
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <div class="d-flex justify-content-between align-items-center">
+                    <h5><i class="fas fa-filter me-2"></i>Filtros</h5>
+                </div>
+            </div>
+            <div class="card-body">
+                <div class="btn-group" role="group">
+                    <a href="{{ url_for('admin_reports', status='pendente') }}" 
+                       class="btn {{ 'btn-primary' if status_filter == 'pendente' else 'btn-outline-primary' }}">
+                        <i class="fas fa-clock me-1"></i>Pendentes
+                    </a>
+                    <a href="{{ url_for('admin_reports', status='aprovado') }}" 
+                       class="btn {{ 'btn-success' if status_filter == 'aprovado' else 'btn-outline-success' }}">
+                        <i class="fas fa-check me-1"></i>Aprovados
+                    </a>
+                    <a href="{{ url_for('admin_reports', status='reprovado') }}" 
+                       class="btn {{ 'btn-danger' if status_filter == 'reprovado' else 'btn-outline-danger' }}">
+                        <i class="fas fa-times me-1"></i>Reprovados
+                    </a>
+                    <a href="{{ url_for('admin_reports', status='all') }}" 
+                       class="btn {{ 'btn-secondary' if status_filter == 'all' else 'btn-outline-secondary' }}">
+                        <i class="fas fa-list me-1"></i>Todos
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h5><i class="fas fa-list me-2"></i>Relatórios</h5>
+            </div>
+            <div class="card-body">
+                {% if relatorios %}
+                <div class="table-responsive">
+                    <table class="table table-striped">
+                        <thead>
+                            <tr>
+                                <th>#</th>
+                                <th>Obra</th>
+                                <th>Usuário</th>
+                                <th>Data</th>
+                                <th>Status</th>
+                                <th>Aprovador</th>
+                                <th>Ações</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for relatorio in relatorios %}
+                            <tr>
+                                <td><strong>#{{ relatorio.numero_seq|sprintf('%03d') }}</strong></td>
+                                <td>{{ relatorio.obra.nome }}</td>
+                                <td>{{ relatorio.usuario.nome }}</td>
+                                <td>{{ relatorio.data_criacao.strftime('%d/%m/%Y %H:%M') }}</td>
+                                <td>
+                                    {% if relatorio.status == 'pendente' %}
+                                    <span class="badge bg-warning text-dark">Pendente</span>
+                                    {% elif relatorio.status == 'aprovado' %}
+                                    <span class="badge bg-success">Aprovado</span>
+                                    {% elif relatorio.status == 'reprovado' %}
+                                    <span class="badge bg-danger">Reprovado</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% if relatorio.aprovador %}
+                                    {{ relatorio.aprovador.nome }}
+                                    <br><small class="text-muted">{{ relatorio.data_aprovacao.strftime('%d/%m/%Y') if relatorio.data_aprovacao }}</small>
+                                    {% else %}
+                                    <span class="text-muted">-</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    <div class="btn-group btn-group-sm">
+                                        <button type="button" class="btn btn-outline-primary" onclick="viewReport({{ relatorio.id }})">
+                                            <i class="fas fa-eye"></i>
+                                        </button>
+                                        {% if relatorio.status == 'pendente' %}
+                                        <button type="button" class="btn btn-outline-success" onclick="approveReport({{ relatorio.id }})">
+                                            <i class="fas fa-check"></i>
+                                        </button>
+                                        <button type="button" class="btn btn-outline-danger" onclick="rejectReport({{ relatorio.id }})">
+                                            <i class="fas fa-times"></i>
+                                        </button>
+                                        {% endif %}
+                                        {% if relatorio.pdf_path %}
+                                        <a href="{{ url_for('generate_report_pdf', report_id=relatorio.id) }}" 
+                                           class="btn btn-outline-info">
+                                            <i class="fas fa-download"></i>
+                                        </a>
+                                        {% endif %}
+                                    </div>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <div class="text-center py-5">
+                    <i class="fas fa-file-alt fa-4x text-muted mb-3"></i>
+                    <h4>Nenhum relatório encontrado</h4>
+                    <p class="text-muted">Não há relatórios com status "{{ status_filter }}"</p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Report Details Modal -->
+<div class="modal fade" id="reportModal" tabindex="-1">
+    <div class="modal-dialog modal-xl">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Detalhes do Relatório</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body" id="reportDetails">
+                <!-- Content loaded dynamically -->
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Approve Modal -->
+<div class="modal fade" id="approveModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form id="approveForm" method="POST">
+                <div class="modal-header">
+                    <h5 class="modal-title"><i class="fas fa-check text-success me-2"></i>Aprovar Relatório</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label for="approveObservacoes" class="form-label">Observações (opcional)</label>
+                        <textarea class="form-control" id="approveObservacoes" name="observacoes" rows="3"
+                                  placeholder="Adicione observações sobre a aprovação..."></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-success">
+                        <i class="fas fa-check me-1"></i>Aprovar
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Reject Modal -->
+<div class="modal fade" id="rejectModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form id="rejectForm" method="POST">
+                <div class="modal-header">
+                    <h5 class="modal-title"><i class="fas fa-times text-danger me-2"></i>Reprovar Relatório</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label for="rejectObservacoes" class="form-label">Observações *</label>
+                        <textarea class="form-control" id="rejectObservacoes" name="observacoes" rows="3" required
+                                  placeholder="Explique os motivos da reprovação e o que deve ser corrigido..."></textarea>
+                    </div>
+                    <div class="mb-3">
+                        <label for="prazoDias" class="form-label">Prazo para correção (dias)</label>
+                        <select class="form-control" id="prazoDias" name="prazo_dias">
+                            <option value="3">3 dias</option>
+                            <option value="7" selected>7 dias</option>
+                            <option value="14">14 dias</option>
+                            <option value="30">30 dias</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-danger">
+                        <i class="fas fa-times me-1"></i>Reprovar
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+function viewReport(reportId) {
+    // Placeholder for report details view
+    document.getElementById('reportDetails').innerHTML = '<div class="text-center py-4"><i class="fas fa-spinner fa-spin"></i> Carregando...</div>';
+    new bootstrap.Modal(document.getElementById('reportModal')).show();
+}
+
+function approveReport(reportId) {
+    document.getElementById('approveForm').action = `/admin/reports/${reportId}/approve`;
+    new bootstrap.Modal(document.getElementById('approveModal')).show();
+}
+
+function rejectReport(reportId) {
+    document.getElementById('rejectForm').action = `/admin/reports/${reportId}/reject`;
+    new bootstrap.Modal(document.getElementById('rejectModal')).show();
+}
+</script>
+{% endblock %}
