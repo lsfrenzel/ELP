@@ -192,10 +192,15 @@ def generate_pdf_report(relatorio):
                                 new_width = max_height * aspect_ratio
                             
                             # Add the image to PDF
-                            img = Image(photo_path, width=new_width, height=new_height)
-                            img.hAlign = 'CENTER'
-                            story.append(img)
-                            story.append(Spacer(1, 6))
+                            try:
+                                img = Image(photo_path, width=new_width, height=new_height)
+                                img.hAlign = 'CENTER'
+                                story.append(img)
+                                story.append(Spacer(1, 6))
+                                current_app.logger.info(f"Successfully added image to PDF: {foto.caminho_arquivo}")
+                            except Exception as img_add_error:
+                                story.append(Paragraph(f"Erro ao inserir imagem: {foto.caminho_arquivo}", styles['Normal']))
+                                current_app.logger.error(f"Error adding image to PDF: {str(img_add_error)}")
                     else:
                         story.append(Paragraph(f"Arquivo: {foto.caminho_arquivo} (não encontrado)", styles['Normal']))
                         current_app.logger.warning(f"Image file not found: {photo_path}")

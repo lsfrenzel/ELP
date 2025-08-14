@@ -133,4 +133,17 @@ class Alerta(db.Model):
     status = db.Column(db.String(20), default='pendente')  # 'pendente', 'resolvido'
     data_criacao = db.Column(db.DateTime, default=datetime.utcnow)
 
+class HistoricoAprovacao(db.Model):
+    __tablename__ = 'historico_aprovacoes'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    relatorio_id = db.Column(db.Integer, db.ForeignKey('relatorios.id'), nullable=False)
+    aprovador_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+    acao = db.Column(db.String(20), nullable=False)  # 'aprovado', 'reprovado'
+    observacoes = db.Column(db.Text)
+    data_acao = db.Column(db.DateTime, default=datetime.utcnow)
+    
+    # Relationships
+    aprovador = db.relationship('User', backref='historico_aprovacoes')
+
 

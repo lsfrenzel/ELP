@@ -8,6 +8,14 @@ ELP is a comprehensive Progressive Web Application (PWA) for construction projec
 
 Preferred communication style: Simple, everyday language.
 
+## Recent Changes (August 2025)
+
+- **Report Editing for Rejected Reports**: Users can now edit reports that were rejected by administrators, with full approval/rejection history tracking
+- **Enhanced PDF Generation**: Fixed image embedding in PDF reports using PIL with proper aspect ratio and centering
+- **Admin Workflow History**: Complete history tracking of all approval/rejection actions with reasons and timestamps
+- **Sample Data Integration**: Added sample construction photos for testing PDF generation functionality
+- **Template Bug Fixes**: Resolved sprintf filter issues in admin reports template
+
 ## System Architecture
 
 ### Backend Architecture

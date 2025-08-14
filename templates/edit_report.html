@@ -1,158 +1,324 @@
 {% extends "base.html" %}
 
-{% block title %}Editar Relatório - ELP Obras{% endblock %}
+{% block title %}Editar Relatório{% endblock %}
 
 {% block content %}
-<div class="row mb-4">
-    <div class="col">
-        <h1><i class="fas fa-edit me-2"></i>Editar Relatório</h1>
-        <p class="text-muted">Faça as correções necessárias no relatório</p>
-        
-        {% if relatorio.observacoes_admin %}
-        <div class="alert alert-warning">
-            <h6><i class="fas fa-exclamation-triangle me-1"></i>Observações do Administrador:</h6>
-            <p class="mb-0">{{ relatorio.observacoes_admin }}</p>
-            {% if relatorio.prazo_revisao %}
-            <small class="text-muted">Prazo para revisão: {{ relatorio.prazo_revisao.strftime('%d/%m/%Y') }}</small>
-            {% endif %}
+<div class="row">
+    <div class="col-12">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h1><i class="fas fa-edit me-2"></i>Editar Relatório #{{ '{:03d}'.format(relatorio.numero_seq) }}</h1>
+            <a href="{{ url_for('reports') }}" class="btn btn-secondary">
+                <i class="fas fa-arrow-left me-1"></i>Voltar
+            </a>
         </div>
-        {% endif %}
-    </div>
-    <div class="col-auto">
-        <a href="{{ url_for('reports') }}" class="btn btn-secondary">
-            <i class="fas fa-arrow-left me-1"></i>Voltar
-        </a>
     </div>
 </div>
 
-<div class="row justify-content-center">
-    <div class="col-md-8">
+{% if relatorio.status == 'reprovado' %}
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="alert alert-warning">
+            <h5><i class="fas fa-exclamation-triangle me-2"></i>Relatório Reprovado</h5>
+            <p><strong>Motivo:</strong> {{ relatorio.observacoes_admin }}</p>
+            {% if relatorio.prazo_revisao %}
+            <p><strong>Prazo para correção:</strong> {{ relatorio.prazo_revisao.strftime('%d/%m/%Y') }}</p>
+            {% endif %}
+            <p><small class="text-muted">Faça as correções necessárias e reenvie o relatório.</small></p>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+{% if relatorio.historico %}
+<div class="row mb-4">
+    <div class="col-12">
         <div class="card">
+            <div class="card-header">
+                <h5><i class="fas fa-history me-2"></i>Histórico de Aprovações</h5>
+            </div>
             <div class="card-body">
-                <form method="POST" action="{{ url_for('update_report', relatorio_id=relatorio.id) }}">
+                {% for hist in relatorio.historico %}
+                <div class="d-flex justify-content-between align-items-start mb-2">
+                    <div>
+                        {% if hist.acao == 'aprovado' %}
+                        <span class="badge bg-success">Aprovado</span>
+                        {% else %}
+                        <span class="badge bg-danger">Reprovado</span>
+                        {% endif %}
+                        por {{ hist.aprovador.nome }}
+                        {% if hist.observacoes %}
+                        <br><small class="text-muted">{{ hist.observacoes }}</small>
+                        {% endif %}
+                    </div>
+                    <small class="text-muted">{{ hist.data_acao.strftime('%d/%m/%Y %H:%M') }}</small>
+                </div>
+                {% if not loop.last %}<hr>{% endif %}
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<form method="POST" id="reportForm" enctype="multipart/form-data">
+    <div class="row">
+        <div class="col-lg-8">
+            <div class="card">
+                <div class="card-header">
+                    <h5><i class="fas fa-clipboard-list me-2"></i>Dados do Relatório</h5>
+                </div>
+                <div class="card-body">
                     <div class="mb-3">
-                        <label for="obra_id" class="form-label">Obra</label>
-                        <select class="form-select" id="obra_id" name="obra_id" disabled>
+                        <label for="obra_id" class="form-label">Obra *</label>
+                        <select class="form-control" id="obra_id" name="obra_id" required>
+                            <option value="">Selecione uma obra...</option>
                             {% for obra in obras %}
-                            <option value="{{ obra.id }}" {{ 'selected' if obra.id == relatorio.obra_id }}>{{ obra.nome }}</option>
+                            <option value="{{ obra.id }}" {{ 'selected' if obra.id == relatorio.obra_id else '' }}>
+                                {{ obra.nome }} - {{ obra.endereco }}
+                            </option>
                             {% endfor %}
                         </select>
-                        <input type="hidden" name="obra_id" value="{{ relatorio.obra_id }}">
-                        <small class="text-muted">A obra não pode ser alterada após a criação do relatório.</small>
                     </div>
-
-                    <div class="mb-3">
-                        <label for="data" class="form-label">Data do Relatório</label>
-                        <input type="date" class="form-control" id="data" name="data" 
-                               value="{{ relatorio.data.strftime('%Y-%m-%d') }}" readonly>
-                        <small class="text-muted">A data não pode ser alterada.</small>
-                    </div>
-
+                    
                     <div class="mb-3">
                         <label for="atividades" class="form-label">Atividades Realizadas *</label>
-                        <textarea class="form-control" id="atividades" name="atividades" rows="6" required>{{ relatorio.atividades or '' }}</textarea>
+                        <textarea class="form-control" id="atividades" name="atividades" rows="4" required 
+                                  placeholder="Descreva as atividades realizadas no dia...">{{ relatorio.atividades }}</textarea>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="observacoes" class="form-label">Observações</label>
+                        <textarea class="form-control" id="observacoes" name="observacoes" rows="3" 
+                                  placeholder="Observações adicionais...">{{ relatorio.observacoes or '' }}</textarea>
                     </div>
 
-                    {% if checklists %}
+                    <!-- GPS Location -->
                     <div class="mb-3">
-                        <label class="form-label">Checklist</label>
-                        {% for checklist in checklists %}
-                            <div class="card mb-3">
-                                <div class="card-header">
-                                    <h6 class="mb-0">{{ checklist.nome }}</h6>
-                                </div>
-                                <div class="card-body">
-                                    {% for campo in checklist.campos %}
-                                    <div class="mb-2">
-                                        <label class="form-label">{{ campo }}</label>
-                                        {% set field_name = 'checklist_' + campo.lower().replace(' ', '_') %}
-                                        {% if campo.lower().endswith('observações') or 'descrição' in campo.lower() %}
-                                            <textarea class="form-control" name="{{ field_name }}" rows="2">{{ relatorio.checklist_data.get(campo.lower().replace(' ', '_'), '') if relatorio.checklist_data else '' }}</textarea>
-                                        {% else %}
-                                            <select class="form-select" name="{{ field_name }}" 
-                                                    {{ 'required' if campo in checklist.obrigatorios else '' }}>
-                                                <option value="">Selecione...</option>
-                                                <option value="Sim" {{ 'selected' if relatorio.checklist_data and relatorio.checklist_data.get(campo.lower().replace(' ', '_')) == 'Sim' }}>Sim</option>
-                                                <option value="Não" {{ 'selected' if relatorio.checklist_data and relatorio.checklist_data.get(campo.lower().replace(' ', '_')) == 'Não' }}>Não</option>
-                                                <option value="N/A" {{ 'selected' if relatorio.checklist_data and relatorio.checklist_data.get(campo.lower().replace(' ', '_')) == 'N/A' }}>N/A</option>
-                                            </select>
+                        <label class="form-label">Localização</label>
+                        <div class="input-group">
+                            <input type="text" class="form-control" id="endereco" name="endereco" 
+                                   value="{{ relatorio.endereco or '' }}" readonly
+                                   placeholder="Clique em 'Obter Localização' para capturar">
+                            <button type="button" class="btn btn-outline-primary" id="getLocationBtn">
+                                <i class="fas fa-map-marker-alt me-1"></i>Obter Localização
+                            </button>
+                        </div>
+                        <input type="hidden" id="latitude" name="latitude" value="{{ relatorio.latitude or '' }}">
+                        <input type="hidden" id="longitude" name="longitude" value="{{ relatorio.longitude or '' }}">
+                        <small class="text-muted">A localização será capturada automaticamente quando disponível</small>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Photos Section -->
+            <div class="card mt-4">
+                <div class="card-header">
+                    <h5><i class="fas fa-camera me-2"></i>Fotos</h5>
+                </div>
+                <div class="card-body">
+                    <!-- Existing Photos -->
+                    {% if relatorio.fotos %}
+                    <div class="mb-4">
+                        <h6>Fotos Atuais</h6>
+                        <div class="row" id="existingPhotos">
+                            {% for foto in relatorio.fotos %}
+                            <div class="col-md-6 col-lg-4 mb-3" data-photo-id="{{ foto.id }}">
+                                <div class="card">
+                                    <img src="{{ url_for('static', filename='uploads/' + foto.caminho_arquivo) }}" 
+                                         class="card-img-top" style="height: 200px; object-fit: cover;">
+                                    <div class="card-body p-2">
+                                        <small class="text-muted">{{ foto.tipo_servico }}</small>
+                                        {% if foto.descricao %}
+                                        <br><small>{{ foto.descricao }}</small>
                                         {% endif %}
+                                        <button type="button" class="btn btn-outline-danger btn-sm float-end" 
+                                                onclick="removePhoto({{ foto.id }})">
+                                            <i class="fas fa-trash"></i>
+                                        </button>
                                     </div>
-                                    {% endfor %}
                                 </div>
                             </div>
-                        {% endfor %}
+                            {% endfor %}
+                        </div>
                     </div>
                     {% endif %}
 
-                    <!-- Location Section -->
+                    <!-- New Photos Upload -->
                     <div class="mb-3">
-                        <label class="form-label">Localização GPS</label>
-                        <div class="row">
-                            <div class="col-md-4">
-                                <button type="button" class="btn btn-outline-primary w-100 mb-2" onclick="getCurrentLocation()">
-                                    <i class="fas fa-map-marker-alt me-1"></i>Atualizar GPS
-                                </button>
-                            </div>
-                            <div class="col-md-4">
-                                <input type="number" class="form-control" id="latitude" name="latitude" 
-                                       placeholder="Latitude" step="any" value="{{ relatorio.latitude or '' }}">
-                            </div>
-                            <div class="col-md-4">
-                                <input type="number" class="form-control" id="longitude" name="longitude" 
-                                       placeholder="Longitude" step="any" value="{{ relatorio.longitude or '' }}">
-                            </div>
-                        </div>
-                        <div id="locationStatus" class="mt-2">
-                            {% if relatorio.latitude and relatorio.longitude %}
-                            <div class="alert alert-success">
-                                <i class="fas fa-map-marker-alt me-1"></i>
-                                Localização atual: {{ relatorio.latitude }}, {{ relatorio.longitude }}
-                            </div>
-                            {% endif %}
-                        </div>
+                        <label for="photos" class="form-label">Adicionar Novas Fotos</label>
+                        <input type="file" class="form-control" id="photos" name="photos" multiple accept="image/*">
+                        <small class="text-muted">Selecione uma ou mais imagens (JPG, PNG, JPEG)</small>
                     </div>
 
-                    <div class="d-grid gap-2 d-md-flex justify-content-md-end">
-                        <a href="{{ url_for('reports') }}" class="btn btn-secondary me-md-2">Cancelar</a>
-                        <button type="submit" class="btn btn-primary">
-                            <i class="fas fa-save me-1"></i>Salvar e Reenviar para Aprovação
-                        </button>
-                    </div>
-                </form>
-            </div>
-        </div>
-
-        <!-- Current Photos Section -->
-        {% if relatorio.fotos %}
-        <div class="card mt-4">
-            <div class="card-header">
-                <h6><i class="fas fa-images me-1"></i>Fotos Atuais</h6>
-            </div>
-            <div class="card-body">
-                <div class="row">
-                    {% for foto in relatorio.fotos %}
-                    <div class="col-md-6 col-lg-4 mb-3">
-                        <div class="card">
-                            <img src="{{ url_for('static', filename='uploads/' + foto.caminho_arquivo) }}" 
-                                 class="card-img-top" style="height: 200px; object-fit: cover;">
-                            <div class="card-body p-2">
-                                <small class="text-muted">{{ foto.tipo_servico }}</small>
-                                {% if foto.descricao %}
-                                <p class="card-text small">{{ foto.descricao }}</p>
-                                {% endif %}
-                            </div>
-                        </div>
-                    </div>
-                    {% endfor %}
+                    <div id="newPhotosPreview" class="row"></div>
                 </div>
-                <small class="text-muted">
-                    <i class="fas fa-info-circle me-1"></i>
-                    As fotos atuais serão mantidas. Para alterar fotos, entre em contato com o administrador.
-                </small>
             </div>
         </div>
-        {% endif %}
+
+        <!-- Sidebar -->
+        <div class="col-lg-4">
+            {% if checklists %}
+            <div class="card">
+                <div class="card-header">
+                    <h5><i class="fas fa-tasks me-2"></i>Checklist</h5>
+                </div>
+                <div class="card-body">
+                    <div class="mb-3">
+                        <label for="checklist_id" class="form-label">Selecionar Checklist</label>
+                        <select class="form-control" id="checklist_id" onchange="loadChecklist()">
+                            <option value="">Selecione um checklist...</option>
+                            {% for checklist in checklists %}
+                            <option value="{{ checklist.id }}">{{ checklist.nome }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div id="checklistItems"></div>
+                </div>
+            </div>
+            {% endif %}
+
+            <div class="card mt-4">
+                <div class="card-header">
+                    <h5><i class="fas fa-info-circle me-2"></i>Informações</h5>
+                </div>
+                <div class="card-body">
+                    <p><strong>Número:</strong> #{{ '{:03d}'.format(relatorio.numero_seq) }}</p>
+                    <p><strong>Obra:</strong> {{ relatorio.obra.nome }}</p>
+                    <p><strong>Data Original:</strong> {{ relatorio.data_criacao.strftime('%d/%m/%Y %H:%M') }}</p>
+                    <p><strong>Status:</strong> 
+                        {% if relatorio.status == 'pendente' %}
+                        <span class="badge bg-warning text-dark">Pendente</span>
+                        {% elif relatorio.status == 'aprovado' %}
+                        <span class="badge bg-success">Aprovado</span>
+                        {% elif relatorio.status == 'reprovado' %}
+                        <span class="badge bg-danger">Reprovado</span>
+                        {% endif %}
+                    </p>
+                </div>
+            </div>
+        </div>
     </div>
-</div>
+
+    <div class="row mt-4">
+        <div class="col-12">
+            <div class="d-flex justify-content-between">
+                <a href="{{ url_for('reports') }}" class="btn btn-secondary">
+                    <i class="fas fa-times me-1"></i>Cancelar
+                </a>
+                <button type="submit" class="btn btn-success" id="submitBtn">
+                    <i class="fas fa-save me-1"></i>Salvar Alterações
+                </button>
+            </div>
+        </div>
+    </div>
+</form>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+// Photo management
+function removePhoto(photoId) {
+    if (confirm('Tem certeza que deseja remover esta foto?')) {
+        // Create hidden input to mark photo for deletion
+        const input = document.createElement('input');
+        input.type = 'hidden';
+        input.name = 'remove_photos[]';
+        input.value = photoId;
+        document.getElementById('reportForm').appendChild(input);
+        
+        // Hide the photo card
+        const photoCard = document.querySelector(`[data-photo-id="${photoId}"]`);
+        if (photoCard) {
+            photoCard.style.display = 'none';
+        }
+    }
+}
+
+// Photo preview for new uploads
+document.getElementById('photos').addEventListener('change', function(e) {
+    const preview = document.getElementById('newPhotosPreview');
+    preview.innerHTML = '';
+    
+    for (let i = 0; i < e.target.files.length; i++) {
+        const file = e.target.files[i];
+        const reader = new FileReader();
+        
+        reader.onload = function(e) {
+            const col = document.createElement('div');
+            col.className = 'col-md-6 col-lg-4 mb-3';
+            col.innerHTML = `
+                <div class="card">
+                    <img src="${e.target.result}" class="card-img-top" style="height: 200px; object-fit: cover;">
+                    <div class="card-body p-2">
+                        <input type="text" class="form-control form-control-sm mb-2" 
+                               name="photo_types[]" placeholder="Tipo de serviço" required>
+                        <textarea class="form-control form-control-sm" name="photo_descriptions[]" 
+                                  placeholder="Descrição (opcional)" rows="2"></textarea>
+                    </div>
+                </div>
+            `;
+            preview.appendChild(col);
+        };
+        
+        reader.readAsDataURL(file);
+    }
+});
+
+// Checklist loading
+async function loadChecklist() {
+    const checklistId = document.getElementById('checklist_id').value;
+    const container = document.getElementById('checklistItems');
+    
+    if (!checklistId) {
+        container.innerHTML = '';
+        return;
+    }
+    
+    try {
+        const response = await fetch(`/api/checklists/${checklistId}`);
+        const checklist = await response.json();
+        
+        let html = '';
+        checklist.campos.forEach((campo, index) => {
+            const isRequired = checklist.obrigatorios.includes(campo);
+            const currentValue = {{ relatorio.checklist_data|tojson }} [campo] || '';
+            
+            html += `
+                <div class="mb-2">
+                    <div class="form-check">
+                        <input class="form-check-input" type="checkbox" 
+                               name="checklist[${campo}]" value="on" 
+                               id="check_${index}" ${currentValue === 'on' ? 'checked' : ''}>
+                        <label class="form-check-label" for="check_${index}">
+                            ${campo} ${isRequired ? '<span class="text-danger">*</span>' : ''}
+                        </label>
+                    </div>
+                </div>
+            `;
+        });
+        
+        container.innerHTML = html;
+    } catch (error) {
+        console.error('Error loading checklist:', error);
+        container.innerHTML = '<div class="alert alert-danger">Erro ao carregar checklist</div>';
+    }
+}
+
+// Initialize geolocation when page loads
+document.addEventListener('DOMContentLoaded', function() {
+    if (window.ELPApp && window.ELPApp.geolocation) {
+        const getLocationBtn = document.getElementById('getLocationBtn');
+        getLocationBtn.addEventListener('click', function() {
+            window.ELPApp.geolocation.getCurrentPosition().then(position => {
+                document.getElementById('latitude').value = position.latitude;
+                document.getElementById('longitude').value = position.longitude;
+                document.getElementById('endereco').value = position.address || 
+                    `${position.latitude.toFixed(6)}, ${position.longitude.toFixed(6)}`;
+            }).catch(error => {
+                alert('Erro ao obter localização: ' + error.message);
+            });
+        });
+    }
+});
+</script>
 {% endblock %}

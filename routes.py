@@ -9,7 +9,7 @@ from datetime import datetime, date, timedelta
 from functools import wraps
 
 from app import app, db, mail
-from models import User, Obra, Relatorio, Checklist, Contato, Foto, Alerta
+from models import User, Obra, Relatorio, Checklist, Contato, Foto, Alerta, HistoricoAprovacao
 from utils import send_email, generate_pdf_report, allowed_file
 
 def admin_required(f):
@@ -305,14 +305,28 @@ def update_report(relatorio_id):
         flash('Este relatório não pode ser editado.', 'error')
         return redirect(url_for('reports'))
     
+    # Create history entry before updating if report was rejected
+    if relatorio.status == 'reprovado' and relatorio.aprovador_id:
+        historico = HistoricoAprovacao(
+            relatorio_id=relatorio.id,
+            aprovador_id=relatorio.aprovador_id,
+            acao='reprovado',
+            observacoes=relatorio.observacoes_admin,
+            data_acao=relatorio.data_aprovacao or datetime.utcnow()
+        )
+        db.session.add(historico)
+
     # Update report data
     relatorio.atividades = request.form.get('atividades')
+    relatorio.observacoes = request.form.get('observacoes')
+    relatorio.obra_id = request.form.get('obra_id')
+    relatorio.endereco = request.form.get('endereco')
     
     # Process checklist data
     checklist_data = {}
     for key in request.form:
-        if key.startswith('checklist_'):
-            field_name = key.replace('checklist_', '')
+        if key.startswith('checklist[') and key.endswith(']'):
+            field_name = key[10:-1]  # Remove 'checklist[' and ']'
             checklist_data[field_name] = request.form[key]
     relatorio.checklist_data = checklist_data
     
@@ -322,13 +336,58 @@ def update_report(relatorio_id):
     if latitude and longitude:
         relatorio.latitude = float(latitude)
         relatorio.longitude = float(longitude)
+
+    # Handle photo removals
+    remove_photos = request.form.getlist('remove_photos[]')
+    if remove_photos:
+        for photo_id in remove_photos:
+            foto = Foto.query.get(photo_id)
+            if foto and foto.relatorio_id == relatorio.id:
+                # Delete file from filesystem
+                try:
+                    photo_path = os.path.join(app.config['UPLOAD_FOLDER'], foto.caminho_arquivo)
+                    if os.path.exists(photo_path):
+                        os.remove(photo_path)
+                except:
+                    pass
+                db.session.delete(foto)
+
+    # Handle new photo uploads
+    if 'photos' in request.files:
+        files = request.files.getlist('photos')
+        photo_types = request.form.getlist('photo_types[]')
+        photo_descriptions = request.form.getlist('photo_descriptions[]')
+        
+        for i, file in enumerate(files):
+            if file.filename:
+                tipo_servico = photo_types[i] if i < len(photo_types) else 'Geral'
+                descricao = photo_descriptions[i] if i < len(photo_descriptions) else ''
+                
+                filename = secure_filename(file.filename)
+                timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+                filename = f"{timestamp}_{filename}"
+                file_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+                file.save(file_path)
+                
+                foto = Foto(
+                    relatorio_id=relatorio.id,
+                    tipo_servico=tipo_servico,
+                    caminho_arquivo=filename,
+                    tamanho=os.path.getsize(file_path),
+                    descricao=descricao
+                )
+                db.session.add(foto)
     
     # Reset status to pending if it was rejected
     if relatorio.status == 'reprovado':
         relatorio.status = 'pendente'
         relatorio.aprovador_id = None
         relatorio.data_aprovacao = None
+        relatorio.observacoes_admin = None
         relatorio.prazo_revisao = None
+    
+    # Update last edit timestamp
+    relatorio.data_ultima_edicao = datetime.utcnow()
     
     db.session.commit()
     
@@ -627,6 +686,16 @@ def approve_report(relatorio_id):
     relatorio.data_aprovacao = datetime.utcnow()
     relatorio.observacoes_admin = observacoes
     
+    # Create history entry
+    historico = HistoricoAprovacao(
+        relatorio_id=relatorio.id,
+        aprovador_id=current_user.id,
+        acao='aprovado',
+        observacoes=observacoes,
+        data_acao=datetime.utcnow()
+    )
+    db.session.add(historico)
+    
     db.session.commit()
     
     # Send notification email to user
@@ -660,6 +729,7 @@ def reject_report(relatorio_id):
     
     relatorio.status = 'reprovado'
     relatorio.aprovador_id = current_user.id
+    relatorio.data_aprovacao = datetime.utcnow()
     relatorio.observacoes_admin = observacoes
     
     # Set revision deadline
@@ -667,6 +737,16 @@ def reject_report(relatorio_id):
         relatorio.prazo_revisao = datetime.strptime(prazo_revisao_str, '%Y-%m-%d')
     else:
         relatorio.prazo_revisao = datetime.utcnow() + timedelta(days=prazo_dias)
+    
+    # Create history entry
+    historico = HistoricoAprovacao(
+        relatorio_id=relatorio.id,
+        aprovador_id=current_user.id,
+        acao='reprovado',
+        observacoes=observacoes,
+        data_acao=datetime.utcnow()
+    )
+    db.session.add(historico)
     
     db.session.commit()
     
