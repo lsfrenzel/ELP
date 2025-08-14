@@ -1,0 +1,176 @@
+{% extends "base.html" %}
+
+{% block title %}Obras - ELP Obras{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col">
+        <h1><i class="fas fa-building me-2"></i>Gestão de Obras</h1>
+        <p class="text-muted">Gerencie projetos e acompanhe o progresso</p>
+    </div>
+    {% if current_user.role == 'admin' %}
+    <div class="col-auto">
+        <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#newProjectModal">
+            <i class="fas fa-plus me-1"></i>Nova Obra
+        </button>
+    </div>
+    {% endif %}
+</div>
+
+{% if obras %}
+<div class="row">
+    {% for obra in obras %}
+    <div class="col-md-6 col-lg-4 mb-4">
+        <div class="card project-card h-100">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h6 class="mb-0">{{ obra.nome }}</h6>
+                <span class="badge bg-{{ 'success' if obra.status == 'ativa' else 'secondary' }}">
+                    {{ obra.status.title() }}
+                </span>
+            </div>
+            <div class="card-body">
+                <p class="card-text">
+                    <strong>Tipo:</strong> {{ obra.tipo }}<br>
+                    <strong>Responsável:</strong> {{ obra.responsavel.nome }}<br>
+                    {% if obra.endereco %}
+                    <strong>Endereço:</strong> {{ obra.endereco }}<br>
+                    {% endif %}
+                    {% if obra.data_inicio %}
+                    <strong>Início:</strong> {{ obra.data_inicio.strftime('%d/%m/%Y') }}
+                    {% endif %}
+                </p>
+                {% if obra.descricao %}
+                <p class="card-text text-muted">{{ obra.descricao[:100] }}{% if obra.descricao|length > 100 %}...{% endif %}</p>
+                {% endif %}
+            </div>
+            <div class="card-footer bg-transparent">
+                <div class="row g-2">
+                    <div class="col">
+                        <a href="{{ url_for('reports', obra_id=obra.id) }}" class="btn btn-outline-primary btn-sm w-100">
+                            <i class="fas fa-file-alt me-1"></i>Relatórios
+                        </a>
+                    </div>
+                    <div class="col">
+                        <a href="{{ url_for('create_report_form') }}?obra_id={{ obra.id }}" class="btn btn-primary btn-sm w-100">
+                            <i class="fas fa-plus me-1"></i>Novo
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+{% else %}
+<div class="text-center py-5">
+    <i class="fas fa-building fa-4x text-muted mb-3"></i>
+    <h3 class="text-muted">Nenhuma obra encontrada</h3>
+    {% if current_user.role == 'admin' %}
+    <p class="text-muted">Comece criando uma nova obra</p>
+    <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#newProjectModal">
+        <i class="fas fa-plus me-1"></i>Criar Primeira Obra
+    </button>
+    {% else %}
+    <p class="text-muted">Entre em contato com o administrador para ter acesso às obras</p>
+    {% endif %}
+</div>
+{% endif %}
+
+{% if current_user.role == 'admin' %}
+<!-- New Project Modal -->
+<div class="modal fade" id="newProjectModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Nova Obra</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form method="POST" action="{{ url_for('create_project') }}">
+                <div class="modal-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="nome" class="form-label">Nome da Obra</label>
+                                <input type="text" class="form-control" id="nome" name="nome" required>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="tipo" class="form-label">Tipo de Obra</label>
+                                <select class="form-control" id="tipo" name="tipo" required>
+                                    <option value="">Selecione o tipo</option>
+                                    <option value="Residencial">Residencial</option>
+                                    <option value="Comercial">Comercial</option>
+                                    <option value="Industrial">Industrial</option>
+                                    <option value="Infraestrutura">Infraestrutura</option>
+                                    <option value="Reforma">Reforma</option>
+                                    <option value="Manutenção">Manutenção</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="responsavel_id" class="form-label">Responsável</label>
+                        <select class="form-control" id="responsavel_id" name="responsavel_id" required>
+                            <option value="">Selecione o responsável</option>
+                            {% for user in users %}
+                            <option value="{{ user.id }}">{{ user.nome }} ({{ user.email }})</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="endereco" class="form-label">Endereço</label>
+                        <textarea class="form-control" id="endereco" name="endereco" rows="2"></textarea>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="descricao" class="form-label">Descrição</label>
+                        <textarea class="form-control" id="descricao" name="descricao" rows="3"></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-primary">Criar Obra</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endif %}
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+// Add hover effects to project cards
+document.addEventListener('DOMContentLoaded', function() {
+    const projectCards = document.querySelectorAll('.project-card');
+    projectCards.forEach(card => {
+        card.addEventListener('mouseenter', function() {
+            this.style.transform = 'translateY(-5px)';
+            this.style.transition = 'transform 0.3s ease';
+        });
+        
+        card.addEventListener('mouseleave', function() {
+            this.style.transform = 'translateY(0)';
+        });
+    });
+});
+
+// Pre-select project from URL parameter
+const urlParams = new URLSearchParams(window.location.search);
+const obraId = urlParams.get('obra_id');
+if (obraId) {
+    // Highlight the selected project
+    const projectCards = document.querySelectorAll('.project-card');
+    projectCards.forEach(card => {
+        const reportLink = card.querySelector('a[href*="obra_id"]');
+        if (reportLink && reportLink.href.includes(`obra_id=${obraId}`)) {
+            card.classList.add('border-primary');
+            card.style.boxShadow = '0 0 10px rgba(37, 99, 235, 0.3)';
+        }
+    });
+}
+</script>
+{% endblock %}

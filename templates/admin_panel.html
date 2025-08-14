@@ -1,0 +1,292 @@
+{% extends "base.html" %}
+
+{% block title %}Painel Administrativo - ELP Obras{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col">
+        <h1><i class="fas fa-cogs me-2"></i>Painel Administrativo</h1>
+        <p class="text-muted">Gestão completa do sistema</p>
+    </div>
+</div>
+
+<div class="row mb-4">
+    <div class="col-md-4">
+        <div class="card stats-card bg-gradient-primary text-white">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h2>{{ users_count }}</h2>
+                        <p class="mb-0">Usuários</p>
+                    </div>
+                    <div class="stats-icon">
+                        <i class="fas fa-users fa-3x opacity-75"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-4">
+        <div class="card stats-card bg-gradient-success text-white">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h2>{{ obras_count }}</h2>
+                        <p class="mb-0">Obras</p>
+                    </div>
+                    <div class="stats-icon">
+                        <i class="fas fa-building fa-3x opacity-75"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-4">
+        <div class="card stats-card bg-gradient-info text-white">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h2>{{ relatorios_count }}</h2>
+                        <p class="mb-0">Relatórios</p>
+                    </div>
+                    <div class="stats-icon">
+                        <i class="fas fa-file-alt fa-3x opacity-75"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">
+                <h5><i class="fas fa-users me-2"></i>Gestão de Usuários</h5>
+            </div>
+            <div class="card-body">
+                <p class="text-muted">Gerencie usuários, permissões e acessos ao sistema.</p>
+                <div class="d-grid gap-2">
+                    <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#newUserModal">
+                        <i class="fas fa-user-plus me-1"></i>Novo Usuário
+                    </button>
+                    <button class="btn btn-outline-secondary" onclick="loadUsers()">
+                        <i class="fas fa-list me-1"></i>Listar Usuários
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">
+                <h5><i class="fas fa-tasks me-2"></i>Gestão de Checklists</h5>
+            </div>
+            <div class="card-body">
+                <p class="text-muted">Configure checklists dinâmicos para relatórios.</p>
+                <div class="d-grid gap-2">
+                    <button class="btn btn-success" data-bs-toggle="modal" data-bs-target="#newChecklistModal">
+                        <i class="fas fa-plus me-1"></i>Novo Checklist
+                    </button>
+                    <button class="btn btn-outline-secondary" onclick="loadChecklists()">
+                        <i class="fas fa-list me-1"></i>Listar Checklists
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row mt-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h5><i class="fas fa-chart-bar me-2"></i>Relatórios Administrativos</h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-3">
+                        <div class="d-grid">
+                            <button class="btn btn-info" onclick="generateActivityReport()">
+                                <i class="fas fa-chart-line me-1"></i>Relatório de Atividades
+                            </button>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="d-grid">
+                            <button class="btn btn-warning" onclick="generateUserReport()">
+                                <i class="fas fa-users me-1"></i>Relatório de Usuários
+                            </button>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="d-grid">
+                            <button class="btn btn-danger" onclick="generateProjectReport()">
+                                <i class="fas fa-building me-1"></i>Relatório de Obras
+                            </button>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="d-grid">
+                            <button class="btn btn-dark" onclick="exportData()">
+                                <i class="fas fa-download me-1"></i>Exportar Dados
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- New User Modal -->
+<div class="modal fade" id="newUserModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Novo Usuário</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form id="newUserForm">
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label for="userName" class="form-label">Nome</label>
+                        <input type="text" class="form-control" id="userName" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="userEmail" class="form-label">Email</label>
+                        <input type="email" class="form-control" id="userEmail" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="userPassword" class="form-label">Senha</label>
+                        <input type="password" class="form-control" id="userPassword" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="userRole" class="form-label">Função</label>
+                        <select class="form-control" id="userRole" required>
+                            <option value="user">Usuário</option>
+                            <option value="admin">Administrador</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-primary">Criar Usuário</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- New Checklist Modal -->
+<div class="modal fade" id="newChecklistModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Novo Checklist</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form id="newChecklistForm">
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label for="checklistName" class="form-label">Nome do Checklist</label>
+                        <input type="text" class="form-control" id="checklistName" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Campos</label>
+                        <div id="checklistFields">
+                            <div class="input-group mb-2">
+                                <input type="text" class="form-control" placeholder="Nome do campo">
+                                <div class="input-group-text">
+                                    <input type="checkbox" title="Obrigatório">
+                                </div>
+                                <button type="button" class="btn btn-outline-danger" onclick="removeField(this)">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                            </div>
+                        </div>
+                        <button type="button" class="btn btn-sm btn-outline-primary" onclick="addField()">
+                            <i class="fas fa-plus me-1"></i>Adicionar Campo
+                        </button>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-success">Criar Checklist</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+// User management functions
+function loadUsers() {
+    // Implementation for loading users
+    alert('Função de listar usuários será implementada');
+}
+
+function loadChecklists() {
+    // Implementation for loading checklists
+    alert('Função de listar checklists será implementada');
+}
+
+// Report generation functions
+function generateActivityReport() {
+    alert('Gerando relatório de atividades...');
+}
+
+function generateUserReport() {
+    alert('Gerando relatório de usuários...');
+}
+
+function generateProjectReport() {
+    alert('Gerando relatório de obras...');
+}
+
+function exportData() {
+    alert('Exportando dados do sistema...');
+}
+
+// Checklist field management
+function addField() {
+    const fieldsContainer = document.getElementById('checklistFields');
+    const fieldHTML = `
+        <div class="input-group mb-2">
+            <input type="text" class="form-control" placeholder="Nome do campo">
+            <div class="input-group-text">
+                <input type="checkbox" title="Obrigatório">
+            </div>
+            <button type="button" class="btn btn-outline-danger" onclick="removeField(this)">
+                <i class="fas fa-trash"></i>
+            </button>
+        </div>
+    `;
+    fieldsContainer.insertAdjacentHTML('beforeend', fieldHTML);
+}
+
+function removeField(button) {
+    button.closest('.input-group').remove();
+}
+
+// Form submissions
+document.getElementById('newUserForm').addEventListener('submit', function(e) {
+    e.preventDefault();
+    // Implementation for creating new user
+    alert('Usuário seria criado aqui');
+    document.getElementById('newUserModal').querySelector('[data-bs-dismiss="modal"]').click();
+});
+
+document.getElementById('newChecklistForm').addEventListener('submit', function(e) {
+    e.preventDefault();
+    // Implementation for creating new checklist
+    alert('Checklist seria criado aqui');
+    document.getElementById('newChecklistModal').querySelector('[data-bs-dismiss="modal"]').click();
+});
+</script>
+{% endblock %}

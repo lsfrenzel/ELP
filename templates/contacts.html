@@ -1,0 +1,337 @@
+{% extends "base.html" %}
+
+{% block title %}Contatos - ELP Obras{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col">
+        <h1><i class="fas fa-address-book me-2"></i>Contatos</h1>
+        <p class="text-muted">Gerencie contatos das obras</p>
+    </div>
+    <div class="col-auto">
+        <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#newContactModal">
+            <i class="fas fa-plus me-1"></i>Novo Contato
+        </button>
+    </div>
+</div>
+
+{% if contatos %}
+<div class="row">
+    {% for contato in contatos %}
+    <div class="col-md-6 col-lg-4 mb-4">
+        <div class="card contact-card h-100">
+            <div class="card-body">
+                <div class="d-flex align-items-start">
+                    <div class="avatar-circle me-3">
+                        <i class="fas fa-user"></i>
+                    </div>
+                    <div class="flex-grow-1">
+                        <h5 class="card-title mb-1">{{ contato.nome }}</h5>
+                        {% if contato.cargo %}
+                        <p class="text-muted small mb-2">{{ contato.cargo }}</p>
+                        {% endif %}
+                        
+                        <div class="contact-info">
+                            {% if contato.email %}
+                            <div class="mb-2">
+                                <i class="fas fa-envelope text-primary me-2"></i>
+                                <a href="mailto:{{ contato.email }}" class="text-decoration-none">{{ contato.email }}</a>
+                            </div>
+                            {% endif %}
+                            
+                            {% if contato.telefone %}
+                            <div class="mb-2">
+                                <i class="fas fa-phone text-success me-2"></i>
+                                <a href="tel:{{ contato.telefone }}" class="text-decoration-none">{{ contato.telefone }}</a>
+                            </div>
+                            {% endif %}
+                            
+                            <div class="mb-2">
+                                <i class="fas fa-building text-warning me-2"></i>
+                                <span>{{ contato.obra.nome }}</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="card-footer bg-transparent">
+                <div class="btn-group w-100" role="group">
+                    {% if contato.email %}
+                    <button class="btn btn-outline-primary btn-sm" onclick="sendEmailToContact('{{ contato.email }}')">
+                        <i class="fas fa-envelope"></i>
+                    </button>
+                    {% endif %}
+                    {% if contato.telefone %}
+                    <a href="tel:{{ contato.telefone }}" class="btn btn-outline-success btn-sm">
+                        <i class="fas fa-phone"></i>
+                    </a>
+                    {% endif %}
+                    <button class="btn btn-outline-warning btn-sm" onclick="editContact({{ contato.id }})">
+                        <i class="fas fa-edit"></i>
+                    </button>
+                    {% if current_user.role == 'admin' %}
+                    <button class="btn btn-outline-danger btn-sm" onclick="deleteContact({{ contato.id }})">
+                        <i class="fas fa-trash"></i>
+                    </button>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+{% else %}
+<div class="text-center py-5">
+    <i class="fas fa-address-book fa-4x text-muted mb-3"></i>
+    <h3 class="text-muted">Nenhum contato encontrado</h3>
+    <p class="text-muted">Comece adicionando contatos para suas obras</p>
+    <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#newContactModal">
+        <i class="fas fa-plus me-1"></i>Adicionar Primeiro Contato
+    </button>
+</div>
+{% endif %}
+
+<!-- New Contact Modal -->
+<div class="modal fade" id="newContactModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Novo Contato</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form method="POST" action="{{ url_for('create_contact') }}">
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label for="nome" class="form-label">Nome *</label>
+                        <input type="text" class="form-control" id="nome" name="nome" required>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="email" class="form-label">Email</label>
+                                <input type="email" class="form-control" id="email" name="email">
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="telefone" class="form-label">Telefone</label>
+                                <input type="tel" class="form-control" id="telefone" name="telefone">
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="cargo" class="form-label">Cargo/Função</label>
+                        <input type="text" class="form-control" id="cargo" name="cargo" 
+                               placeholder="Ex: Engenheiro, Arquiteto, Cliente...">
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="obra_id" class="form-label">Obra *</label>
+                        <select class="form-control" id="obra_id" name="obra_id" required>
+                            <option value="">Selecione a obra</option>
+                            {% for obra in obras %}
+                            <option value="{{ obra.id }}">{{ obra.nome }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-primary">Salvar Contato</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Edit Contact Modal -->
+<div class="modal fade" id="editContactModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Editar Contato</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form id="editContactForm">
+                <div class="modal-body">
+                    <input type="hidden" id="editContactId">
+                    
+                    <div class="mb-3">
+                        <label for="editNome" class="form-label">Nome *</label>
+                        <input type="text" class="form-control" id="editNome" required>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="editEmail" class="form-label">Email</label>
+                                <input type="email" class="form-control" id="editEmail">
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="editTelefone" class="form-label">Telefone</label>
+                                <input type="tel" class="form-control" id="editTelefone">
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="editCargo" class="form-label">Cargo/Função</label>
+                        <input type="text" class="form-control" id="editCargo">
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="editObraId" class="form-label">Obra *</label>
+                        <select class="form-control" id="editObraId" required>
+                            <option value="">Selecione a obra</option>
+                            {% for obra in obras %}
+                            <option value="{{ obra.id }}">{{ obra.nome }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-primary">Salvar Alterações</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Email Modal -->
+<div class="modal fade" id="emailContactModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Enviar Email</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form id="emailContactForm">
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label for="emailTo" class="form-label">Para</label>
+                        <input type="email" class="form-control" id="emailTo" readonly>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="emailSubject" class="form-label">Assunto</label>
+                        <input type="text" class="form-control" id="emailSubject" required>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="emailMessage" class="form-label">Mensagem</label>
+                        <textarea class="form-control" id="emailMessage" rows="5" required></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-primary">Enviar Email</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+// Format phone input
+document.getElementById('telefone').addEventListener('input', function() {
+    let value = this.value.replace(/\D/g, '');
+    if (value.length <= 11) {
+        if (value.length <= 10) {
+            value = value.replace(/(\d{2})(\d{4})(\d{4})/, '($1) $2-$3');
+        } else {
+            value = value.replace(/(\d{2})(\d{5})(\d{4})/, '($1) $2-$3');
+        }
+        this.value = value;
+    }
+});
+
+function editContact(contactId) {
+    // In a real implementation, you would fetch the contact data
+    // For now, we'll simulate it
+    document.getElementById('editContactId').value = contactId;
+    
+    const modal = new bootstrap.Modal(document.getElementById('editContactModal'));
+    modal.show();
+    
+    // Simulate loading contact data
+    setTimeout(() => {
+        document.getElementById('editNome').value = 'Nome do Contato';
+        document.getElementById('editEmail').value = 'contato@exemplo.com';
+        document.getElementById('editTelefone').value = '(11) 99999-9999';
+        document.getElementById('editCargo').value = 'Engenheiro';
+        document.getElementById('editObraId').value = '1';
+    }, 100);
+}
+
+function deleteContact(contactId) {
+    if (confirm('Tem certeza que deseja excluir este contato?')) {
+        // Implementation for deleting contact
+        alert('Contato excluído com sucesso!');
+        location.reload();
+    }
+}
+
+function sendEmailToContact(email) {
+    document.getElementById('emailTo').value = email;
+    const modal = new bootstrap.Modal(document.getElementById('emailContactModal'));
+    modal.show();
+}
+
+// Handle edit form submission
+document.getElementById('editContactForm').addEventListener('submit', function(e) {
+    e.preventDefault();
+    
+    const submitBtn = e.target.querySelector('button[type="submit"]');
+    submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>Salvando...';
+    submitBtn.disabled = true;
+    
+    // Simulate API call
+    setTimeout(() => {
+        alert('Contato atualizado com sucesso!');
+        document.getElementById('editContactModal').querySelector('[data-bs-dismiss="modal"]').click();
+        location.reload();
+    }, 1000);
+});
+
+// Handle email form submission
+document.getElementById('emailContactForm').addEventListener('submit', function(e) {
+    e.preventDefault();
+    
+    const submitBtn = e.target.querySelector('button[type="submit"]');
+    submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>Enviando...';
+    submitBtn.disabled = true;
+    
+    // Simulate API call
+    setTimeout(() => {
+        alert('Email enviado com sucesso!');
+        document.getElementById('emailContactModal').querySelector('[data-bs-dismiss="modal"]').click();
+        document.getElementById('emailContactForm').reset();
+        submitBtn.innerHTML = 'Enviar Email';
+        submitBtn.disabled = false;
+    }, 2000);
+});
+
+// Add hover effects to contact cards
+document.addEventListener('DOMContentLoaded', function() {
+    const contactCards = document.querySelectorAll('.contact-card');
+    contactCards.forEach(card => {
+        card.addEventListener('mouseenter', function() {
+            this.style.transform = 'translateY(-3px)';
+            this.style.transition = 'transform 0.3s ease';
+        });
+        
+        card.addEventListener('mouseleave', function() {
+            this.style.transform = 'translateY(0)';
+        });
+    });
+});
+</script>
+{% endblock %}

@@ -1,0 +1,112 @@
+{
+  "name": "ELP - Gestão de Obras",
+  "short_name": "ELP Obras",
+  "description": "Sistema completo para gestão de obras e relatórios de construção",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#2563eb",
+  "orientation": "portrait-primary",
+  "scope": "/",
+  "lang": "pt-BR",
+  "categories": ["productivity", "business", "utilities"],
+  "icons": [
+    {
+      "src": "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTkyIiBoZWlnaHQ9IjE5MiIgdmlld0JveD0iMCAwIDE5MiAxOTIiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxyZWN0IHdpZHRoPSIxOTIiIGhlaWdodD0iMTkyIiByeD0iMjQiIGZpbGw9IiMyNTYzZWIiLz4KICA8cGF0aCBkPSJNNDggNzJoOTZ2NDhINDh6IiBmaWxsPSJ3aGl0ZSIgZmlsbC1vcGFjaXR5PSIwLjIiLz4KICA8cGF0aCBkPSJNNjQgNTZoNjR2MTZINjR6IiBmaWxsPSJ3aGl0ZSIvPgogIDxwYXRoIGQ9Ik04MCA4OGgzMnYzMkg4MHoiIGZpbGw9IndoaXRlIiBmaWxsLW9wYWNpdHk9IjAuOCIvPgogIDxjaXJjbGUgY3g9IjU2IiBjeT0iOTYiIHI9IjQiIGZpbGw9IndoaXRlIi8+CiAgPGNpcmNsZSBjeD0iNTYiIGN5PSIxMDQiIHI9IjQiIGZpbGw9IndoaXRlIi8+CiAgPGNpcmNsZSBjeD0iNTYiIGN5PSIxMTIiIHI9IjQiIGZpbGw9IndoaXRlIi8+CiAgPHJlY3Qgd2lkdGg9IjE2IiBoZWlnaHQ9IjQiIHg9Ijg4IiB5PSIxMzYiIGZpbGw9IndoaXRlIiBvcGFjaXR5PSIwLjYiLz4KICA8cmVjdCB3aWR0aD0iMTYiIGhlaWdodD0iNCIgeD0iMTA4IiB5PSIxMzYiIGZpbGw9IndoaXRlIiBvcGFjaXR5PSIwLjYiLz4KICA8cmVjdCB3aWR0aD0iMTYiIGhlaWdodD0iNCIgeD0iMTI4IiB5PSIxMzYiIGZpbGw9IndoaXRlIiBvcGFjaXR5PSIwLjYiLz4KPC9zdmc+",
+      "sizes": "192x192",
+      "type": "image/svg+xml",
+      "purpose": "maskable any"
+    },
+    {
+      "src": "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNTEyIiBoZWlnaHQ9IjUxMiIgdmlld0JveD0iMCAwIDUxMiA1MTIiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxyZWN0IHdpZHRoPSI1MTIiIGhlaWdodD0iNTEyIiByeD0iNjQiIGZpbGw9IiMyNTYzZWIiLz4KICA8cGF0aCBkPSJNMTI4IDE5MmgyNTZ2MTI4SDEyOHoiIGZpbGw9IndoaXRlIiBmaWxsLW9wYWNpdHk9IjAuMiIvPgogIDxwYXRoIGQ9Ik0xNzEgMTQ5aDg1djQyaC04NXoiIGZpbGw9IndoaXRlIi8+CiAgPHBhdGggZD0iTTIxMyAyMzRoODV2ODVoLTg1eiIgZmlsbD0id2hpdGUiIGZpbGwtb3BhY2l0eT0iMC44Ii8+CiAgPGNpcmNsZSBjeD0iMTQ5IiBjeT0iMjU1IiByPSIxMSIgZmlsbD0id2hpdGUiLz4KICA8Y2lyY2xlIGN4PSIxNDkiIGN5PSIyNzciIHI9IjExIiBmaWxsPSJ3aGl0ZSIvPgogIDxjaXJjbGUgY3g9IjE0OSIgY3k9IjI5OSIgcj0iMTEiIGZpbGw9IndoaXRlIi8+CiAgPHJlY3Qgd2lkdGg9IjQzIiBoZWlnaHQ9IjExIiB4PSIyMzQiIHk9IjM2MiIgZmlsbD0id2hpdGUiIG9wYWNpdHk9IjAuNiIvPgogIDxyZWN0IHdpZHRoPSI0MyIgaGVpZ2h0PSIxMSIgeD0iMjg5IiB5PSIzNjIiIGZpbGw9IndoaXRlIiBvcGFjaXR5PSIwLjYiLz4KICA8cmVjdCB3aWR0aD0iNDMiIGhlaWdodD0iMTEiIHg9IjM0MSIgeT0iMzYyIiBmaWxsPSJ3aGl0ZSIgb3BhY2l0eT0iMC42Ii8+Cjwvc3ZnPg==",
+      "sizes": "512x512",
+      "type": "image/svg+xml",
+      "purpose": "maskable any"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Novo Relatório",
+      "short_name": "Relatório",
+      "description": "Criar um novo relatório de obra",
+      "url": "/reports/create",
+      "icons": [
+        {
+          "src": "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iOTYiIGhlaWdodD0iOTYiIGZpbGw9IiMyNTYzZWIiIHZpZXdCb3g9IjAgMCAyNCAyNCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cGF0aCBkPSJNMTkgM0g1Yy0xLjEgMC0yIC45LTIgMnYxNGMwIDEuMS45IDIgMiAyaDE0YzEuMSAwIDItLjkgMi0yVjVjMC0xLjEtLjktMi0yLTJ6TTkgMTdIN3YtN2gydjd6bTQgMGgtMlY3aDJ2MTB6bTQgMGgtMnYtNGgydjR6Ii8+PC9zdmc+",
+          "sizes": "96x96"
+        }
+      ]
+    },
+    {
+      "name": "Dashboard",
+      "short_name": "Início",
+      "description": "Ir para o dashboard principal",
+      "url": "/dashboard",
+      "icons": [
+        {
+          "src": "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iOTYiIGhlaWdodD0iOTYiIGZpbGw9IiMyNTYzZWIiIHZpZXdCb3g9IjAgMCAyNCAyNCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cGF0aCBkPSJNMyAxM2g4VjNIM3YxMHptMCA4aDh2LTZIM3Y2em0xMCAwaDh2LTEwaC04djEwem0wLTE4djZoOFYzaC04eiIvPjwvc3ZnPg==",
+          "sizes": "96x96"
+        }
+      ]
+    },
+    {
+      "name": "Obras",
+      "short_name": "Obras",
+      "description": "Ver lista de obras",
+      "url": "/projects",
+      "icons": [
+        {
+          "src": "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iOTYiIGhlaWdodD0iOTYiIGZpbGw9IiMyNTYzZWIiIHZpZXdCb3g9IjAgMCAyNCAyNCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cGF0aCBkPSJNMTIgMkw0IDlsMCA2YzAgNS41NSA0LjQ1IDEwIDEwIDEwczEwLTQuNDUgMTAtMTBWOWwtOC03em0tMi4wNSA5TDcgOC41bDEuNDEtMS40MUwxMCAxMC4xN2w0LjI1LTQuMjRMMTUuNjYgN0wxMC45NSAxMS41eiIvPjwvc3ZnPg==",
+          "sizes": "96x96"
+        }
+      ]
+    }
+  ],
+  "share_target": {
+    "action": "/reports/create",
+    "method": "GET",
+    "params": {
+      "title": "title",
+      "text": "text",
+      "url": "url"
+    }
+  },
+  "capture_links": "existing-client-navigate",
+  "launch_handler": {
+    "client_mode": "focus-existing"
+  },
+  "prefer_related_applications": false,
+  "related_applications": [],
+  "file_handlers": [
+    {
+      "action": "/reports/import",
+      "accept": {
+        "application/pdf": [".pdf"],
+        "image/*": [".jpg", ".jpeg", ".png", ".gif", ".webp"]
+      }
+    }
+  ],
+  "protocol_handlers": [
+    {
+      "protocol": "web+elp",
+      "url": "/?protocol=%s"
+    }
+  ],
+  "edge_side_panel": {
+    "preferred_width": 400
+  },
+  "screenshots": [
+    {
+      "src": "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNTQwIiBoZWlnaHQ9IjcyMCIgdmlld0JveD0iMCAwIDU0MCA3MjAiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PHJlY3Qgd2lkdGg9IjU0MCIgaGVpZ2h0PSI3MjAiIGZpbGw9IiNmOGZhZmMiLz48cmVjdCB5PSI1MCIgd2lkdGg9IjU0MCIgaGVpZ2h0PSI2MCIgZmlsbD0iIzI1NjNlYiIvPjx0ZXh0IHg9IjIwIiB5PSI4NSIgZmlsbD0id2hpdGUiIGZvbnQtZmFtaWx5PSJzYW5zLXNlcmlmIiBmb250LXNpemU9IjE4Ij5FTFAgT2JyYXM8L3RleHQ+PHJlY3QgeD0iMjAiIHk9IjE0MCIgd2lkdGg9IjI0MCIgaGVpZ2h0PSIxMDAiIHJ4PSI4IiBmaWxsPSJ3aGl0ZSIgc3Ryb2tlPSIjZTJlOGYwIi8+PHJlY3QgeD0iMjgwIiB5PSIxNDAiIHdpZHRoPSIyNDAiIGhlaWdodD0iMTAwIiByeD0iOCIgZmlsbD0id2hpdGUiIHN0cm9rZT0iI2UyZThmMCIvPjxyZWN0IHg9IjIwIiB5PSIyNjAiIHdpZHRoPSI1MDAiIGhlaWdodD0iMjAwIiByeD0iOCIgZmlsbD0id2hpdGUiIHN0cm9rZT0iI2UyZThmMCIvPjx0ZXh0IHg9IjMwIiB5PSIxNzAiIGZvbnQtZmFtaWx5PSJzYW5zLXNlcmlmIiBmb250LXNpemU9IjE0IiBmaWxsPSIjMWUyOTNiIj5EYXNoYm9hcmQ8L3RleHQ+PHRleHQgeD0iMjkwIiB5PSIxNzAiIGZvbnQtZmFtaWx5PSJzYW5zLXNlcmlmIiBmb250LXNpemU9IjE0IiBmaWxsPSIjMWUyOTNiIj5SZWxhdMOzcmlvczwvdGV4dD48dGV4dCB4PSIzMCIgeT0iMjkwIiBmb250LWZhbWlseT0ic2Fucy1zZXJpZiIgZm9udC1zaXplPSIxNCIgZmlsbD0iIzFlMjkzYiI+R2VzdMOjbyBkZSBPYnJhczwvdGV4dD48L3N2Zz4=",
+      "sizes": "540x720",
+      "type": "image/svg+xml",
+      "form_factor": "narrow"
+    },
+    {
+      "src": "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNzIwIiBoZWlnaHQ9IjU0MCIgdmlld0JveD0iMCAwIDcyMCA1NDAiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PHJlY3Qgd2lkdGg9IjcyMCIgaGVpZ2h0PSI1NDAiIGZpbGw9IiNmOGZhZmMiLz48cmVjdCB5PSI1MCIgd2lkdGg9IjcyMCIgaGVpZ2h0PSI2MCIgZmlsbD0iIzI1NjNlYiIvPjx0ZXh0IHg9IjIwIiB5PSI4NSIgZmlsbD0id2hpdGUiIGZvbnQtZmFtaWx5PSJzYW5zLXNlcmlmIiBmb250LXNpemU9IjE4Ij5FTFAgT2JyYXMgLSBEZXNrdG9wPC90ZXh0PjxyZWN0IHg9IjIwIiB5PSIxNDAiIHdpZHRoPSIyMDAiIGhlaWdodD0iMzAwIiByeD0iOCIgZmlsbD0id2hpdGUiIHN0cm9rZT0iI2UyZThmMCIvPjxyZWN0IHg9IjI0MCIgeT0iMTQwIiB3aWR0aD0iNDYwIiBoZWlnaHQ9IjMwMCIgcng9IjgiIGZpbGw9IndoaXRlIiBzdHJva2U9IiNlMmU4ZjAiLz48dGV4dCB4PSIzMCIgeT0iMTcwIiBmb250LWZhbWlseT0ic2Fucy1zZXJpZiIgZm9udC1zaXplPSIxNCIgZmlsbD0iIzFlMjkzYiI+TWVudSBMYXRlcmFsPC90ZXh0Pjx0ZXh0IHg9IjI1MCIgeT0iMTcwIiBmb250LWZhbWlseT0ic2Fucy1zZXJpZiIgZm9udC1zaXplPSIxNCIgZmlsbD0iIzFlMjkzYiI+Q29udGXDumRvIFByaW5jaXBhbDwvdGV4dD48L3N2Zz4=",
+      "sizes": "720x540",
+      "type": "image/svg+xml",
+      "form_factor": "wide"
+    }
+  ]
+}

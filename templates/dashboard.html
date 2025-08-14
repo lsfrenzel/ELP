@@ -1,0 +1,195 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard - ELP Obras{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col">
+        <h1><i class="fas fa-tachometer-alt me-2"></i>Dashboard</h1>
+        <p class="text-muted">Bem-vindo, {{ current_user.nome }}!</p>
+    </div>
+</div>
+
+<div class="row mb-4">
+    <div class="col-md-3">
+        <div class="card stats-card bg-primary text-white">
+            <div class="card-body">
+                <div class="d-flex justify-content-between">
+                    <div>
+                        <h4>{{ obras|length }}</h4>
+                        <p class="mb-0">Obras Ativas</p>
+                    </div>
+                    <div class="stats-icon">
+                        <i class="fas fa-building fa-2x"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-3">
+        <div class="card stats-card bg-success text-white">
+            <div class="card-body">
+                <div class="d-flex justify-content-between">
+                    <div>
+                        <h4>{{ relatorios_recentes|length }}</h4>
+                        <p class="mb-0">Relatórios Recentes</p>
+                    </div>
+                    <div class="stats-icon">
+                        <i class="fas fa-file-alt fa-2x"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-3">
+        <div class="card stats-card bg-warning text-white">
+            <div class="card-body">
+                <div class="d-flex justify-content-between">
+                    <div>
+                        <h4>{{ alertas|length }}</h4>
+                        <p class="mb-0">Alertas Pendentes</p>
+                    </div>
+                    <div class="stats-icon">
+                        <i class="fas fa-exclamation-triangle fa-2x"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-3">
+        <div class="card stats-card bg-info text-white">
+            <div class="card-body">
+                <div class="d-flex justify-content-between">
+                    <div>
+                        <h4 id="currentTime">--:--</h4>
+                        <p class="mb-0">Hora Atual</p>
+                    </div>
+                    <div class="stats-icon">
+                        <i class="fas fa-clock fa-2x"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-header">
+                <h5><i class="fas fa-file-alt me-2"></i>Relatórios Recentes</h5>
+            </div>
+            <div class="card-body">
+                {% if relatorios_recentes %}
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>#</th>
+                                    <th>Obra</th>
+                                    <th>Data</th>
+                                    <th>Status</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for relatorio in relatorios_recentes %}
+                                <tr>
+                                    <td>{{ relatorio.numero_seq }}</td>
+                                    <td>{{ relatorio.obra.nome }}</td>
+                                    <td>{{ relatorio.data.strftime('%d/%m/%Y') }}</td>
+                                    <td>
+                                        <span class="badge bg-{{ 'success' if relatorio.status == 'fechado' else 'warning' }}">
+                                            {{ relatorio.status.title() }}
+                                        </span>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                {% else %}
+                    <div class="text-center py-4 text-muted">
+                        <i class="fas fa-file-alt fa-3x mb-3"></i>
+                        <p>Nenhum relatório encontrado</p>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-header">
+                <h5><i class="fas fa-exclamation-triangle me-2"></i>Alertas</h5>
+            </div>
+            <div class="card-body">
+                {% if alertas %}
+                    {% for alerta in alertas %}
+                    <div class="alert alert-warning mb-2">
+                        <small class="text-muted">{{ alerta.data_alerta.strftime('%d/%m/%Y %H:%M') }}</small>
+                        <p class="mb-0">{{ alerta.descricao }}</p>
+                    </div>
+                    {% endfor %}
+                {% else %}
+                    <div class="text-center py-4 text-muted">
+                        <i class="fas fa-check-circle fa-3x mb-3"></i>
+                        <p>Nenhum alerta pendente</p>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+        
+        <div class="card mt-3">
+            <div class="card-header">
+                <h5><i class="fas fa-plus me-2"></i>Ações Rápidas</h5>
+            </div>
+            <div class="card-body">
+                <div class="d-grid gap-2">
+                    <a href="{{ url_for('create_report_form') }}" class="btn btn-primary">
+                        <i class="fas fa-plus me-1"></i>Novo Relatório
+                    </a>
+                    {% if current_user.role == 'admin' %}
+                    <a href="{{ url_for('projects') }}" class="btn btn-outline-secondary">
+                        <i class="fas fa-building me-1"></i>Gerenciar Obras
+                    </a>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+// Update current time
+function updateTime() {
+    const now = new Date();
+    const timeString = now.toLocaleTimeString('pt-BR', { 
+        hour: '2-digit', 
+        minute: '2-digit' 
+    });
+    document.getElementById('currentTime').textContent = timeString;
+}
+
+updateTime();
+setInterval(updateTime, 60000); // Update every minute
+
+// Add some animation to stats cards
+document.addEventListener('DOMContentLoaded', function() {
+    const statsCards = document.querySelectorAll('.stats-card');
+    statsCards.forEach(card => {
+        card.addEventListener('mouseenter', function() {
+            this.style.transform = 'translateY(-5px)';
+        });
+        
+        card.addEventListener('mouseleave', function() {
+            this.style.transform = 'translateY(0)';
+        });
+    });
+});
+</script>
+{% endblock %}

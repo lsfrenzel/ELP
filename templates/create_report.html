@@ -1,0 +1,317 @@
+{% extends "base.html" %}
+
+{% block title %}Novo Relatório - ELP Obras{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col">
+        <h1><i class="fas fa-plus me-2"></i>Novo Relatório</h1>
+        <p class="text-muted">Registre atividades e progresso da obra</p>
+    </div>
+</div>
+
+<form method="POST" enctype="multipart/form-data" id="reportForm">
+    <div class="row">
+        <div class="col-lg-8">
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5><i class="fas fa-info-circle me-2"></i>Informações Básicas</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="obra_id" class="form-label">Obra *</label>
+                                <select class="form-control" id="obra_id" name="obra_id" required>
+                                    <option value="">Selecione a obra</option>
+                                    {% for obra in obras %}
+                                    <option value="{{ obra.id }}">{{ obra.nome }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="data" class="form-label">Data</label>
+                                <input type="date" class="form-control" id="data" name="data" value="{{ moment().format('YYYY-MM-DD') }}">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5><i class="fas fa-tasks me-2"></i>Atividades Realizadas</h5>
+                </div>
+                <div class="card-body">
+                    <div class="mb-3">
+                        <textarea class="form-control" id="atividades" name="atividades" rows="6" 
+                                  placeholder="Descreva as atividades realizadas na obra..."></textarea>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="card mb-4">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5><i class="fas fa-check-square me-2"></i>Checklist</h5>
+                    <select class="form-select" id="checklistSelect" style="width: auto;">
+                        <option value="">Selecione um checklist</option>
+                        {% for checklist in checklists %}
+                        <option value="{{ checklist.id }}">{{ checklist.nome }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="card-body" id="checklistContainer">
+                    <p class="text-muted text-center py-4">
+                        <i class="fas fa-clipboard-list fa-2x mb-2"></i><br>
+                        Selecione um checklist para começar
+                    </p>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-lg-4">
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5><i class="fas fa-map-marker-alt me-2"></i>Localização</h5>
+                </div>
+                <div class="card-body">
+                    <div id="locationStatus" class="text-center py-3">
+                        <button type="button" class="btn btn-outline-primary" onclick="getCurrentLocation()">
+                            <i class="fas fa-crosshairs me-1"></i>Obter Localização
+                        </button>
+                        <p class="small text-muted mt-2">Clique para registrar sua localização atual</p>
+                    </div>
+                    <input type="hidden" id="latitude" name="latitude">
+                    <input type="hidden" id="longitude" name="longitude">
+                </div>
+            </div>
+            
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5><i class="fas fa-camera me-2"></i>Fotos</h5>
+                </div>
+                <div class="card-body">
+                    <div class="mb-3">
+                        <label for="photoType" class="form-label">Tipo de Serviço</label>
+                        <select class="form-control" id="photoType">
+                            <option value="Geral">Geral</option>
+                            <option value="Estrutural">Estrutural</option>
+                            <option value="Acabamento">Acabamento</option>
+                            <option value="Instalações">Instalações</option>
+                            <option value="Segurança">Segurança</option>
+                            <option value="Problema">Problema</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <input type="file" class="form-control" id="photoFile" accept="image/*" multiple>
+                    </div>
+                    <div id="photoPreview" class="row g-2">
+                        <!-- Photo previews will appear here -->
+                    </div>
+                </div>
+            </div>
+            
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5><i class="fas fa-calculator me-2"></i>Reembolsos (Opcional)</h5>
+                </div>
+                <div class="card-body">
+                    <div class="mb-3">
+                        <label for="quilometragem" class="form-label">Quilometragem (R$)</label>
+                        <input type="number" class="form-control" id="quilometragem" name="quilometragem" 
+                               step="0.01" placeholder="0,00" onchange="calculateTotal()">
+                    </div>
+                    <div class="mb-3">
+                        <label for="alimentacao" class="form-label">Alimentação (R$)</label>
+                        <input type="number" class="form-control" id="alimentacao" name="alimentacao" 
+                               step="0.01" placeholder="0,00" onchange="calculateTotal()">
+                    </div>
+                    <div class="mb-3">
+                        <label for="viagens" class="form-label">Viagens (R$)</label>
+                        <input type="number" class="form-control" id="viagens" name="viagens" 
+                               step="0.01" placeholder="0,00" onchange="calculateTotal()">
+                    </div>
+                    <hr>
+                    <div class="d-flex justify-content-between">
+                        <strong>Total:</strong>
+                        <strong id="totalReembolso">R$ 0,00</strong>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-body text-center">
+                    <button type="submit" class="btn btn-primary btn-lg me-2">
+                        <i class="fas fa-save me-1"></i>Salvar Relatório
+                    </button>
+                    <a href="{{ url_for('reports') }}" class="btn btn-outline-secondary btn-lg">
+                        <i class="fas fa-times me-1"></i>Cancelar
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</form>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+// Get current date for date input
+document.addEventListener('DOMContentLoaded', function() {
+    const dateInput = document.getElementById('data');
+    if (!dateInput.value) {
+        const today = new Date().toISOString().split('T')[0];
+        dateInput.value = today;
+    }
+    
+    // Pre-select project from URL parameter
+    const urlParams = new URLSearchParams(window.location.search);
+    const obraId = urlParams.get('obra_id');
+    if (obraId) {
+        document.getElementById('obra_id').value = obraId;
+    }
+});
+
+// Checklist management
+document.getElementById('checklistSelect').addEventListener('change', function() {
+    const checklistId = this.value;
+    const container = document.getElementById('checklistContainer');
+    
+    if (!checklistId) {
+        container.innerHTML = `
+            <p class="text-muted text-center py-4">
+                <i class="fas fa-clipboard-list fa-2x mb-2"></i><br>
+                Selecione um checklist para começar
+            </p>
+        `;
+        return;
+    }
+    
+    // Show loading state
+    container.innerHTML = `
+        <div class="text-center py-4">
+            <div class="spinner-border text-primary" role="status">
+                <span class="visually-hidden">Carregando...</span>
+            </div>
+            <p class="mt-2">Carregando checklist...</p>
+        </div>
+    `;
+    
+    // Fetch checklist data
+    fetch(`/api/checklists/${checklistId}`)
+        .then(response => response.json())
+        .then(data => {
+            let html = '<div class="row g-3">';
+            
+            data.campos.forEach((campo, index) => {
+                const isRequired = data.obrigatorios.includes(campo);
+                html += `
+                    <div class="col-md-6">
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" 
+                                   id="checklist_${campo.replace(/\s+/g, '_')}" 
+                                   name="checklist_${campo.replace(/\s+/g, '_')}"
+                                   ${isRequired ? 'required' : ''}>
+                            <label class="form-check-label" for="checklist_${campo.replace(/\s+/g, '_')}">
+                                ${campo} ${isRequired ? '<span class="text-danger">*</span>' : ''}
+                            </label>
+                        </div>
+                    </div>
+                `;
+            });
+            
+            html += '</div>';
+            
+            if (data.obrigatorios.length > 0) {
+                html += '<small class="text-muted mt-2 d-block"><span class="text-danger">*</span> Campos obrigatórios</small>';
+            }
+            
+            container.innerHTML = html;
+        })
+        .catch(error => {
+            console.error('Error loading checklist:', error);
+            container.innerHTML = `
+                <div class="alert alert-danger">
+                    <i class="fas fa-exclamation-triangle me-1"></i>
+                    Erro ao carregar checklist. Tente novamente.
+                </div>
+            `;
+        });
+});
+
+// Photo handling
+document.getElementById('photoFile').addEventListener('change', function() {
+    const files = this.files;
+    const preview = document.getElementById('photoPreview');
+    const type = document.getElementById('photoType').value;
+    
+    Array.from(files).forEach(file => {
+        if (file.type.startsWith('image/')) {
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const div = document.createElement('div');
+                div.className = 'col-6 col-md-4';
+                div.innerHTML = `
+                    <div class="card">
+                        <img src="${e.target.result}" class="card-img-top" style="height: 100px; object-fit: cover;">
+                        <div class="card-body p-2">
+                            <small class="text-muted">${type}</small>
+                            <button type="button" class="btn btn-sm btn-outline-danger float-end" 
+                                    onclick="this.closest('.col-6').remove()">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        </div>
+                    </div>
+                `;
+                preview.appendChild(div);
+            };
+            reader.readAsDataURL(file);
+        }
+    });
+});
+
+// Reimbursement calculation
+function calculateTotal() {
+    const quilometragem = parseFloat(document.getElementById('quilometragem').value) || 0;
+    const alimentacao = parseFloat(document.getElementById('alimentacao').value) || 0;
+    const viagens = parseFloat(document.getElementById('viagens').value) || 0;
+    
+    const total = quilometragem + alimentacao + viagens;
+    document.getElementById('totalReembolso').textContent = `R$ ${total.toFixed(2).replace('.', ',')}`;
+}
+
+// Form submission
+document.getElementById('reportForm').addEventListener('submit', function(e) {
+    const submitBtn = this.querySelector('button[type="submit"]');
+    submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>Salvando...';
+    submitBtn.disabled = true;
+    
+    // Validate required checklist items
+    const requiredCheckboxes = this.querySelectorAll('input[type="checkbox"][required]');
+    let allRequiredChecked = true;
+    
+    requiredCheckboxes.forEach(checkbox => {
+        if (!checkbox.checked) {
+            allRequiredChecked = false;
+            checkbox.closest('.form-check').classList.add('border', 'border-danger', 'p-2', 'rounded');
+        } else {
+            checkbox.closest('.form-check').classList.remove('border', 'border-danger', 'p-2', 'rounded');
+        }
+    });
+    
+    if (!allRequiredChecked) {
+        e.preventDefault();
+        alert('Por favor, preencha todos os itens obrigatórios do checklist.');
+        submitBtn.innerHTML = '<i class="fas fa-save me-1"></i>Salvar Relatório';
+        submitBtn.disabled = false;
+        return;
+    }
+});
+</script>
+{% endblock %}
