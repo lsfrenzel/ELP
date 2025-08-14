@@ -69,9 +69,9 @@
             <div class="card-body">
                 <p class="text-muted">Gerencie usuários, permissões e acessos ao sistema.</p>
                 <div class="d-grid gap-2">
-                    <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#newUserModal">
+                    <a href="{{ url_for('register') }}" class="btn btn-primary">
                         <i class="fas fa-user-plus me-1"></i>Novo Usuário
-                    </button>
+                    </a>
                     <button class="btn btn-outline-secondary" onclick="loadUsers()">
                         <i class="fas fa-list me-1"></i>Listar Usuários
                     </button>

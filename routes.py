@@ -38,7 +38,7 @@ def login():
         
         user = User.query.filter_by(email=email).first()
         
-        if user and check_password_hash(user.senha_hash, password):
+        if user and user.senha_hash and check_password_hash(user.senha_hash, password):
             login_user(user)
             flash('Login realizado com sucesso!', 'success')
             
@@ -58,6 +58,40 @@ def logout():
     logout_user()
     flash('Logout realizado com sucesso!', 'success')
     return redirect(url_for('login'))
+
+@app.route('/register', methods=['GET', 'POST'])
+@login_required
+@admin_required
+def register():
+    if request.method == 'POST':
+        nome = request.form.get('nome')
+        email = request.form.get('email')
+        password = request.form.get('password')
+        role = request.form.get('role', 'user')
+        
+        # Check if user already exists
+        if User.query.filter_by(email=email).first():
+            flash('Um usuário com este email já existe.', 'error')
+            return render_template('register.html')
+        
+        # Create new user
+        user = User(
+            nome=nome,
+            email=email,
+            senha_hash=generate_password_hash(password),
+            role=role
+        )
+        
+        db.session.add(user)
+        try:
+            db.session.commit()
+            flash(f'Usuário {nome} criado com sucesso!', 'success')
+            return redirect(url_for('admin_panel'))
+        except Exception as e:
+            db.session.rollback()
+            flash('Erro ao criar usuário. Tente novamente.', 'error')
+    
+    return render_template('register.html')
 
 @app.route('/dashboard')
 @login_required
@@ -337,3 +371,26 @@ def manifest():
 @app.route('/sw.js')
 def service_worker():
     return app.send_static_file('sw.js')
+
+@app.route('/reports/pdf/<int:report_id>')
+@login_required
+def generate_report_pdf(report_id):
+    relatorio = Relatorio.query.get_or_404(report_id)
+    
+    # Check permissions
+    if current_user.role != 'admin' and relatorio.usuario_id != current_user.id:
+        flash('Acesso negado.', 'error')
+        return redirect(url_for('reports'))
+    
+    try:
+        pdf_path = generate_pdf_report(relatorio)
+        
+        if pdf_path and os.path.exists(pdf_path):
+            return send_file(pdf_path, as_attachment=True, 
+                           download_name=f'relatorio_{relatorio.numero_seq:03d}_{relatorio.obra.nome}.pdf')
+        else:
+            flash('Erro ao gerar PDF do relatório.', 'error')
+            return redirect(url_for('reports'))
+    except Exception as e:
+        flash(f'Erro ao gerar PDF: {str(e)}', 'error')
+        return redirect(url_for('reports'))

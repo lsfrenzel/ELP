@@ -65,7 +65,7 @@
                     {% for relatorio in relatorios %}
                     <tr>
                         <td>
-                            <span class="fw-bold">#{{ relatorio.numero_seq:03d }}</span>
+                            <span class="fw-bold">#{{ "%03d"|format(relatorio.numero_seq) }}</span>
                         </td>
                         <td>
                             <div class="d-flex align-items-center">
@@ -96,9 +96,9 @@
                                     <i class="fas fa-edit"></i>
                                 </button>
                                 {% endif %}
-                                <button class="btn btn-outline-success" onclick="generatePDF({{ relatorio.id }})" title="Gerar PDF">
+                                <a href="{{ url_for('generate_report_pdf', report_id=relatorio.id) }}" class="btn btn-outline-success" title="Gerar PDF">
                                     <i class="fas fa-file-pdf"></i>
-                                </button>
+                                </a>
                                 <button class="btn btn-outline-info" onclick="sendEmail({{ relatorio.id }})" title="Enviar por Email">
                                     <i class="fas fa-envelope"></i>
                                 </button>
