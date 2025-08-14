@@ -1,0 +1,117 @@
+Quero criar um aplicativo web responsivo (PWA) para gestão de obras e geração de relatórios.
+O sistema terá backend em Python (Flask) com SQLite como banco de dados local e frontend em HTML5, CSS3 e JavaScript puro.
+O deploy será feito no Railway.
+
+Nome do projeto: ELP – App de Gestão de Obras e Relatórios
+
+Fluxo inicial
+
+Primeira tela obrigatória: Tela de login com campos de email e senha.
+
+Autenticação feita no Flask com gerenciamento de sessão seguro.
+
+Após login:
+
+Se o usuário for administrador (role="admin"), ele será redirecionado para o Painel Administrativo.
+
+Se for usuário comum, será redirecionado para o Painel de Obras e Relatórios.
+
+O Painel Administrativo terá acesso a:
+
+Cadastro e gestão de usuários
+
+Cadastro e gestão de obras
+
+Configuração de checklists
+
+Relatórios completos de atividades
+
+O Painel de Obras e Relatórios exibirá apenas dados e funcionalidades autorizadas para o usuário comum.
+
+Funcionalidades principais
+
+Login e autenticação no Flask (email/senha).
+
+Painel Administrativo para administradores (CRUD de usuários, obras, checklists e acesso a todos os relatórios).
+
+Dashboard geral com agendamentos e status de visitas.
+
+Registro de atividades (texto, checklist e upload de fotos).
+
+Checklist dinâmico com campos obrigatórios e alertas antes da visita.
+
+Geração de relatórios numerados automaticamente por obra, exportação em PDF e histórico.
+
+Controle de edição de relatórios fechados (somente administradores podem editar).
+
+Cadastro de obras com tipo pré-definido.
+
+Cadastro de contatos e vinculação a obras e relatórios.
+
+Envio de relatórios por e-mail para múltiplos contatos.
+
+Upload de fotos com tipo de serviço e tamanho configurável.
+
+Geolocalização GPS para registrar a chegada à obra.
+
+Cálculo opcional de reembolso (quilometragem, alimentação, viagens).
+
+Frontend (HTML, CSS, JS)
+
+Tela inicial de login com design moderno e responsivo
+
+Layout com CSS Grid/Flexbox adaptado para mobile e desktop
+
+Navbar com logout e navegação condicionada ao tipo de usuário
+
+Dashboard com cards e indicadores visuais
+
+Formulários com validação via JavaScript
+
+Consumo da API Flask usando fetch()
+
+Exportação de PDF no cliente usando jsPDF
+
+Manifest PWA + Service Worker para uso offline
+
+Backend (Flask + SQLite)
+
+Estrutura MVC no Flask
+
+Autenticação via Flask-Login com controle de sessão
+
+Banco SQLite com tabelas:
+
+users (id, nome, email, senha_hash, role)
+
+obras (id, nome, tipo, responsavel_id, status, data_inicio, data_fim)
+
+relatorios (id, obra_id, usuario_id, numero_seq, data, atividades, checklist_json, aprovador, status, pdf_path)
+
+checklists (id, nome, campos_json, obrigatorios_json)
+
+contatos (id, nome, email, telefone, obra_id)
+
+fotos (id, relatorio_id, tipo_servico, caminho_arquivo, tamanho)
+
+alertas (id, obra_id, descricao, data_alerta)
+
+reembolsos (id, relatorio_id, quilometragem, alimentacao, viagens, valor_total)
+
+Endpoints REST para todas as entidades com controle de acesso por tipo de usuário
+
+Upload de imagens para /static/uploads
+
+Função para gerar número sequencial por obra
+
+Envio de e-mails com relatórios anexados
+
+Solicitação para o Replit AI:
+
+Criar o projeto completo com tela de login como página inicial obrigatória.
+
+Implementar redirecionamento condicional baseado no role do usuário.
+
+Estruturar o código para permitir fácil expansão futura (novas funcionalidades).
+
+Garantir que a interface seja intuitiva e funcione em dispositivos móveis.
