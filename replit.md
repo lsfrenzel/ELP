@@ -12,7 +12,7 @@ Preferred communication style: Simple, everyday language.
 
 ### Backend Architecture
 - **Framework**: Flask web framework with Python
-- **Database**: SQLite for local data storage with SQLAlchemy ORM
+- **Database**: PostgreSQL for scalable data storage with SQLAlchemy ORM
 - **Authentication**: Flask-Login for session management with role-based access control (admin/user roles)
 - **File Handling**: Werkzeug for secure file uploads with image processing via PIL
 - **Email Services**: Flask-Mail for email notifications and report distribution
@@ -67,9 +67,9 @@ Preferred communication style: Simple, everyday language.
 - **Environment Variables**: MAIL_SERVER, MAIL_USERNAME, MAIL_PASSWORD for email configuration
 
 ### Development and Deployment
-- **SQLite**: Local database with connection pooling and pre-ping configuration
-- **Railway Platform**: Target deployment environment
-- **Environment Configuration**: SESSION_SECRET and other environment-based settings
+- **PostgreSQL**: Production-ready database with connection pooling and pre-ping configuration
+- **Replit Platform**: Target deployment environment with integrated PostgreSQL
+- **Environment Configuration**: SESSION_SECRET, DATABASE_URL and other environment-based settings
 
 ### PWA Infrastructure
 - **Service Worker API**: Browser-native offline functionality
