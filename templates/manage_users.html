@@ -1,0 +1,162 @@
+{% extends "base.html" %}
+
+{% block title %}Gerenciar Usuários - ELP Obras{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col">
+        <h1><i class="fas fa-users me-2"></i>Gerenciar Usuários</h1>
+        <p class="text-muted">Controle de acesso e permissões</p>
+    </div>
+    <div class="col-auto">
+        <a href="{{ url_for('register') }}" class="btn btn-primary">
+            <i class="fas fa-user-plus me-1"></i>Novo Usuário
+        </a>
+    </div>
+</div>
+
+{% if users %}
+<div class="card">
+    <div class="card-body">
+        <div class="table-responsive">
+            <table class="table table-hover">
+                <thead>
+                    <tr>
+                        <th>Nome</th>
+                        <th>Email</th>
+                        <th>Função</th>
+                        <th>Data de Criação</th>
+                        <th>Obras Responsável</th>
+                        <th>Status</th>
+                        <th class="text-center">Ações</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for user in users %}
+                    <tr class="{{ 'table-warning' if user.role == 'inactive' else '' }}">
+                        <td>
+                            <div class="d-flex align-items-center">
+                                <div class="avatar-sm me-2">
+                                    <div class="avatar-title rounded-circle bg-primary text-white">
+                                        {{ user.nome[0].upper() }}
+                                    </div>
+                                </div>
+                                <strong>{{ user.nome }}</strong>
+                            </div>
+                        </td>
+                        <td>{{ user.email }}</td>
+                        <td>
+                            {% if user.role == 'admin' %}
+                                <span class="badge bg-danger">Administrador</span>
+                            {% elif user.role == 'user' %}
+                                <span class="badge bg-primary">Usuário</span>
+                            {% elif user.role == 'inactive' %}
+                                <span class="badge bg-secondary">Inativo</span>
+                            {% else %}
+                                <span class="badge bg-secondary">{{ user.role.title() }}</span>
+                            {% endif %}
+                        </td>
+                        <td>{{ user.data_criacao.strftime('%d/%m/%Y') }}</td>
+                        <td>
+                            <span class="badge bg-info">{{ user.obras_responsavel|length }} obra(s)</span>
+                        </td>
+                        <td>
+                            {% if user.role == 'inactive' %}
+                                <span class="text-danger">
+                                    <i class="fas fa-times-circle me-1"></i>Inativo
+                                </span>
+                            {% else %}
+                                <span class="text-success">
+                                    <i class="fas fa-check-circle me-1"></i>Ativo
+                                </span>
+                            {% endif %}
+                        </td>
+                        <td class="text-center">
+                            {% if user.id != current_user.id %}
+                            <form method="POST" action="{{ url_for('toggle_user_status', user_id=user.id) }}" 
+                                  style="display: inline;" onsubmit="return confirm('Tem certeza que deseja alterar o status deste usuário?')">
+                                {% if user.role == 'inactive' %}
+                                    <button type="submit" class="btn btn-sm btn-success" title="Ativar usuário">
+                                        <i class="fas fa-user-check"></i>
+                                    </button>
+                                {% else %}
+                                    <button type="submit" class="btn btn-sm btn-warning" title="Desativar usuário">
+                                        <i class="fas fa-user-times"></i>
+                                    </button>
+                                {% endif %}
+                            </form>
+                            {% else %}
+                            <span class="text-muted">
+                                <i class="fas fa-user-shield" title="Sua conta"></i>
+                            </span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<div class="row mt-4">
+    <div class="col-md-4">
+        <div class="card bg-light">
+            <div class="card-body">
+                <h5 class="card-title">
+                    <i class="fas fa-users text-primary me-2"></i>Total de Usuários
+                </h5>
+                <h3 class="text-primary">{{ users|length }}</h3>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card bg-light">
+            <div class="card-body">
+                <h5 class="card-title">
+                    <i class="fas fa-user-check text-success me-2"></i>Usuários Ativos
+                </h5>
+                <h3 class="text-success">{{ users|selectattr('role', 'ne', 'inactive')|list|length }}</h3>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card bg-light">
+            <div class="card-body">
+                <h5 class="card-title">
+                    <i class="fas fa-user-shield text-danger me-2"></i>Administradores
+                </h5>
+                <h3 class="text-danger">{{ users|selectattr('role', 'equalto', 'admin')|list|length }}</h3>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% else %}
+<div class="text-center py-5">
+    <i class="fas fa-users fa-4x text-muted mb-3"></i>
+    <h3 class="text-muted">Nenhum usuário encontrado</h3>
+    <p class="text-muted">Comece criando o primeiro usuário</p>
+    <a href="{{ url_for('register') }}" class="btn btn-primary">
+        <i class="fas fa-user-plus me-1"></i>Criar Primeiro Usuário
+    </a>
+</div>
+{% endif %}
+
+<style>
+.avatar-sm {
+    width: 32px;
+    height: 32px;
+}
+
+.avatar-title {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.75rem;
+    font-weight: 600;
+}
+</style>
+{% endblock %}

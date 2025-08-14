@@ -17,6 +17,7 @@ app.config["SQLALCHEMY_DATABASE_URI"] = os.environ.get("DATABASE_URL")
 app.config["SQLALCHEMY_ENGINE_OPTIONS"] = {
     "pool_recycle": 300,
     "pool_pre_ping": True,
+    "connect_args": {"sslmode": "require"}
 }
 app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 
@@ -49,7 +50,7 @@ from routes import *
 
 with app.app_context():
     # Import all models to ensure tables are created
-    from models import User, Checklist, Obra, Relatorio, Contato, Foto, Alerta, Reembolso
+    from models import User, Checklist, Obra, Relatorio, Contato, Foto, Alerta
     
     db.create_all()
     

@@ -1,0 +1,158 @@
+{% extends "base.html" %}
+
+{% block title %}Editar Relatório - ELP Obras{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col">
+        <h1><i class="fas fa-edit me-2"></i>Editar Relatório</h1>
+        <p class="text-muted">Faça as correções necessárias no relatório</p>
+        
+        {% if relatorio.observacoes_admin %}
+        <div class="alert alert-warning">
+            <h6><i class="fas fa-exclamation-triangle me-1"></i>Observações do Administrador:</h6>
+            <p class="mb-0">{{ relatorio.observacoes_admin }}</p>
+            {% if relatorio.prazo_revisao %}
+            <small class="text-muted">Prazo para revisão: {{ relatorio.prazo_revisao.strftime('%d/%m/%Y') }}</small>
+            {% endif %}
+        </div>
+        {% endif %}
+    </div>
+    <div class="col-auto">
+        <a href="{{ url_for('reports') }}" class="btn btn-secondary">
+            <i class="fas fa-arrow-left me-1"></i>Voltar
+        </a>
+    </div>
+</div>
+
+<div class="row justify-content-center">
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-body">
+                <form method="POST" action="{{ url_for('update_report', relatorio_id=relatorio.id) }}">
+                    <div class="mb-3">
+                        <label for="obra_id" class="form-label">Obra</label>
+                        <select class="form-select" id="obra_id" name="obra_id" disabled>
+                            {% for obra in obras %}
+                            <option value="{{ obra.id }}" {{ 'selected' if obra.id == relatorio.obra_id }}>{{ obra.nome }}</option>
+                            {% endfor %}
+                        </select>
+                        <input type="hidden" name="obra_id" value="{{ relatorio.obra_id }}">
+                        <small class="text-muted">A obra não pode ser alterada após a criação do relatório.</small>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="data" class="form-label">Data do Relatório</label>
+                        <input type="date" class="form-control" id="data" name="data" 
+                               value="{{ relatorio.data.strftime('%Y-%m-%d') }}" readonly>
+                        <small class="text-muted">A data não pode ser alterada.</small>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="atividades" class="form-label">Atividades Realizadas *</label>
+                        <textarea class="form-control" id="atividades" name="atividades" rows="6" required>{{ relatorio.atividades or '' }}</textarea>
+                    </div>
+
+                    {% if checklists %}
+                    <div class="mb-3">
+                        <label class="form-label">Checklist</label>
+                        {% for checklist in checklists %}
+                            <div class="card mb-3">
+                                <div class="card-header">
+                                    <h6 class="mb-0">{{ checklist.nome }}</h6>
+                                </div>
+                                <div class="card-body">
+                                    {% for campo in checklist.campos %}
+                                    <div class="mb-2">
+                                        <label class="form-label">{{ campo }}</label>
+                                        {% set field_name = 'checklist_' + campo.lower().replace(' ', '_') %}
+                                        {% if campo.lower().endswith('observações') or 'descrição' in campo.lower() %}
+                                            <textarea class="form-control" name="{{ field_name }}" rows="2">{{ relatorio.checklist_data.get(campo.lower().replace(' ', '_'), '') if relatorio.checklist_data else '' }}</textarea>
+                                        {% else %}
+                                            <select class="form-select" name="{{ field_name }}" 
+                                                    {{ 'required' if campo in checklist.obrigatorios else '' }}>
+                                                <option value="">Selecione...</option>
+                                                <option value="Sim" {{ 'selected' if relatorio.checklist_data and relatorio.checklist_data.get(campo.lower().replace(' ', '_')) == 'Sim' }}>Sim</option>
+                                                <option value="Não" {{ 'selected' if relatorio.checklist_data and relatorio.checklist_data.get(campo.lower().replace(' ', '_')) == 'Não' }}>Não</option>
+                                                <option value="N/A" {{ 'selected' if relatorio.checklist_data and relatorio.checklist_data.get(campo.lower().replace(' ', '_')) == 'N/A' }}>N/A</option>
+                                            </select>
+                                        {% endif %}
+                                    </div>
+                                    {% endfor %}
+                                </div>
+                            </div>
+                        {% endfor %}
+                    </div>
+                    {% endif %}
+
+                    <!-- Location Section -->
+                    <div class="mb-3">
+                        <label class="form-label">Localização GPS</label>
+                        <div class="row">
+                            <div class="col-md-4">
+                                <button type="button" class="btn btn-outline-primary w-100 mb-2" onclick="getCurrentLocation()">
+                                    <i class="fas fa-map-marker-alt me-1"></i>Atualizar GPS
+                                </button>
+                            </div>
+                            <div class="col-md-4">
+                                <input type="number" class="form-control" id="latitude" name="latitude" 
+                                       placeholder="Latitude" step="any" value="{{ relatorio.latitude or '' }}">
+                            </div>
+                            <div class="col-md-4">
+                                <input type="number" class="form-control" id="longitude" name="longitude" 
+                                       placeholder="Longitude" step="any" value="{{ relatorio.longitude or '' }}">
+                            </div>
+                        </div>
+                        <div id="locationStatus" class="mt-2">
+                            {% if relatorio.latitude and relatorio.longitude %}
+                            <div class="alert alert-success">
+                                <i class="fas fa-map-marker-alt me-1"></i>
+                                Localização atual: {{ relatorio.latitude }}, {{ relatorio.longitude }}
+                            </div>
+                            {% endif %}
+                        </div>
+                    </div>
+
+                    <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+                        <a href="{{ url_for('reports') }}" class="btn btn-secondary me-md-2">Cancelar</a>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-save me-1"></i>Salvar e Reenviar para Aprovação
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- Current Photos Section -->
+        {% if relatorio.fotos %}
+        <div class="card mt-4">
+            <div class="card-header">
+                <h6><i class="fas fa-images me-1"></i>Fotos Atuais</h6>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    {% for foto in relatorio.fotos %}
+                    <div class="col-md-6 col-lg-4 mb-3">
+                        <div class="card">
+                            <img src="{{ url_for('static', filename='uploads/' + foto.caminho_arquivo) }}" 
+                                 class="card-img-top" style="height: 200px; object-fit: cover;">
+                            <div class="card-body p-2">
+                                <small class="text-muted">{{ foto.tipo_servico }}</small>
+                                {% if foto.descricao %}
+                                <p class="card-text small">{{ foto.descricao }}</p>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+                <small class="text-muted">
+                    <i class="fas fa-info-circle me-1"></i>
+                    As fotos atuais serão mantidas. Para alterar fotos, entre em contato com o administrador.
+                </small>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

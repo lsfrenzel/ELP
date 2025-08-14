@@ -50,6 +50,13 @@
                             <i class="fas fa-file-alt me-1"></i>Relatórios
                         </a>
                     </div>
+                    {% if current_user.role == 'admin' %}
+                    <div class="col">
+                        <a href="{{ url_for('edit_project', projeto_id=obra.id) }}" class="btn btn-outline-secondary btn-sm w-100">
+                            <i class="fas fa-edit me-1"></i>Editar
+                        </a>
+                    </div>
+                    {% endif %}
                     <div class="col">
                         <a href="{{ url_for('create_report_form') }}?obra_id={{ obra.id }}" class="btn btn-primary btn-sm w-100">
                             <i class="fas fa-plus me-1"></i>Novo

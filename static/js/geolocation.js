@@ -127,11 +127,22 @@ class GeolocationManager {
     }
     
     // Show location success
-    showLocationSuccess(position) {
+    async showLocationSuccess(position) {
         const statusElement = document.getElementById('locationStatus');
         if (!statusElement) return;
         
         const { latitude, longitude, accuracy } = position.coords;
+        
+        // Show loading while getting address
+        statusElement.innerHTML = `
+            <div class="alert alert-info">
+                <i class="fas fa-spinner fa-spin me-2"></i>
+                <strong>Obtendo endereço...</strong>
+            </div>
+        `;
+        
+        // Get address from coordinates
+        const address = await this.getAddressFromCoordinates(latitude, longitude);
         
         statusElement.innerHTML = `
             <div class="alert alert-success">
@@ -144,6 +155,9 @@ class GeolocationManager {
                         Ver detalhes
                     </button>
                 </div>
+                <div class="mt-2">
+                    <strong>Endereço:</strong> ${address}
+                </div>
                 <small class="d-block mt-2">
                     Precisão: ${Math.round(accuracy)}m
                 </small>
@@ -152,6 +166,12 @@ class GeolocationManager {
         
         // Fill hidden form fields
         this.fillLocationFields(latitude, longitude);
+        
+        // Fill address field if it exists
+        const addressField = document.getElementById('endereco_gps');
+        if (addressField) {
+            addressField.value = address;
+        }
         
         // Show location on map (if map container exists)
         this.showLocationOnMap(latitude, longitude);
@@ -331,10 +351,60 @@ class GeolocationManager {
     }
     
     // Get address from coordinates (reverse geocoding)
-    getAddressFromCoordinates(latitude, longitude) {
-        // This would typically use a geocoding service
-        // For now, return a basic format
-        return Promise.resolve(`${latitude.toFixed(6)}, ${longitude.toFixed(6)}`);
+    async getAddressFromCoordinates(latitude, longitude) {
+        try {
+            // Using Nominatim OpenStreetMap API for reverse geocoding
+            const response = await fetch(
+                `https://nominatim.openstreetmap.org/reverse?lat=${latitude}&lon=${longitude}&format=json&addressdetails=1`,
+                {
+                    headers: {
+                        'User-Agent': 'ELP-Obras-App/1.0'
+                    }
+                }
+            );
+            
+            if (!response.ok) {
+                throw new Error('Geocoding service unavailable');
+            }
+            
+            const data = await response.json();
+            
+            if (data && data.display_name) {
+                // Extract meaningful parts of the address
+                const address = data.address || {};
+                let formattedAddress = '';
+                
+                if (address.road) {
+                    formattedAddress += address.road;
+                    if (address.house_number) {
+                        formattedAddress += ', ' + address.house_number;
+                    }
+                }
+                
+                if (address.suburb || address.neighbourhood) {
+                    formattedAddress += formattedAddress ? ' - ' : '';
+                    formattedAddress += (address.suburb || address.neighbourhood);
+                }
+                
+                if (address.city || address.town || address.village) {
+                    formattedAddress += formattedAddress ? ', ' : '';
+                    formattedAddress += (address.city || address.town || address.village);
+                }
+                
+                if (address.state) {
+                    formattedAddress += formattedAddress ? ', ' : '';
+                    formattedAddress += address.state;
+                }
+                
+                return formattedAddress || data.display_name;
+            }
+            
+            return `${latitude.toFixed(6)}, ${longitude.toFixed(6)}`;
+            
+        } catch (error) {
+            console.error('Error getting address:', error);
+            return `${latitude.toFixed(6)}, ${longitude.toFixed(6)}`;
+        }
     }
     
     // Save location to local storage

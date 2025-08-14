@@ -17,26 +17,55 @@ def allowed_file(filename):
     return '.' in filename and \
            filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
 
-def send_email(subject, recipients, body, attachments=None):
-    """Send email with optional attachments"""
+def send_email(to_email, subject, template=None, **kwargs):
+    """Send email with template support"""
     try:
+        # Simple implementation - in production you'd use proper templates
+        if template and 'approved' in template:
+            body = f"""
+Seu relatório foi APROVADO!
+
+Obra: {kwargs.get('relatorio').obra.nome}
+Relatório: #{kwargs.get('relatorio').numero_seq}
+Data: {kwargs.get('relatorio').data.strftime('%d/%m/%Y')}
+
+{kwargs.get('observacoes', '')}
+
+Este é um email automático do sistema ELP Obras.
+            """
+        elif template and 'rejected' in template:
+            body = f"""
+Seu relatório foi REPROVADO e precisa de correções.
+
+Obra: {kwargs.get('relatorio').obra.nome}
+Relatório: #{kwargs.get('relatorio').numero_seq}
+Data: {kwargs.get('relatorio').data.strftime('%d/%m/%Y')}
+
+Motivo da reprovação:
+{kwargs.get('observacoes', '')}
+
+Prazo para revisão: {kwargs.get('prazo_revisao').strftime('%d/%m/%Y') if kwargs.get('prazo_revisao') else 'N/A'}
+
+Por favor, faça as correções necessárias e reenvie o relatório.
+
+Este é um email automático do sistema ELP Obras.
+            """
+        else:
+            body = f"Notificação do sistema ELP Obras: {subject}"
+
         msg = Message(
             subject=subject,
-            recipients=recipients,
+            recipients=[to_email],
             body=body,
-            sender=current_app.config['MAIL_USERNAME']
+            sender=current_app.config.get('MAIL_USERNAME', 'noreply@elp.com')
         )
         
-        if attachments:
-            for attachment in attachments:
-                msg.attach(
-                    attachment['filename'],
-                    attachment['content_type'],
-                    attachment['data']
-                )
-        
-        mail.send(msg)
-        return True
+        if current_app.config.get('MAIL_USERNAME'):
+            mail.send(msg)
+            return True
+        else:
+            current_app.logger.info(f"Email would be sent to {to_email}: {subject}")
+            return True
     except Exception as e:
         current_app.logger.error(f"Error sending email: {str(e)}")
         return False
@@ -123,12 +152,31 @@ def generate_pdf_report(relatorio):
             story.append(checklist_table)
             story.append(Spacer(1, 12))
         
-        # Photos
+        # Photos section with actual photo embedding
         if relatorio.fotos:
+            from reportlab.platypus import Image
             story.append(Paragraph("Fotos Anexadas", styles['Heading2']))
+            
             for foto in relatorio.fotos:
-                story.append(Paragraph(f"• {foto.tipo_servico}: {foto.descricao or 'Sem descrição'}", styles['Normal']))
-            story.append(Spacer(1, 12))
+                story.append(Paragraph(f"<b>{foto.tipo_servico}</b>", styles['Normal']))
+                if foto.descricao:
+                    story.append(Paragraph(foto.descricao, styles['Normal']))
+                
+                # Try to include actual photo in PDF
+                try:
+                    photo_path = os.path.join(upload_folder, foto.caminho_arquivo)
+                    if os.path.exists(photo_path):
+                        # Resize image to fit in PDF
+                        img = Image(photo_path, width=4*inch, height=3*inch)
+                        story.append(img)
+                        story.append(Spacer(1, 6))
+                    else:
+                        story.append(Paragraph(f"Arquivo: {foto.caminho_arquivo} (não encontrado)", styles['Normal']))
+                except Exception as img_error:
+                    story.append(Paragraph(f"Erro ao carregar imagem: {foto.caminho_arquivo}", styles['Normal']))
+                    current_app.logger.error(f"Error loading image in PDF: {str(img_error)}")
+                
+                story.append(Spacer(1, 12))
         
         # Location
         if relatorio.latitude and relatorio.longitude:

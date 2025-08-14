@@ -1,0 +1,135 @@
+{% extends "base.html" %}
+
+{% block title %}Editar Obra - ELP Obras{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col">
+        <h1><i class="fas fa-edit me-2"></i>Editar Obra</h1>
+        <p class="text-muted">Atualize as informações do projeto</p>
+    </div>
+    <div class="col-auto">
+        <a href="{{ url_for('projects') }}" class="btn btn-secondary">
+            <i class="fas fa-arrow-left me-1"></i>Voltar
+        </a>
+    </div>
+</div>
+
+<div class="row justify-content-center">
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-body">
+                <form method="POST" action="{{ url_for('update_project', projeto_id=obra.id) }}">
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="nome" class="form-label">Nome da Obra *</label>
+                            <input type="text" class="form-control" id="nome" name="nome" value="{{ obra.nome }}" required>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="tipo" class="form-label">Tipo de Obra *</label>
+                            <select class="form-select" id="tipo" name="tipo" required>
+                                <option value="Residencial" {{ 'selected' if obra.tipo == 'Residencial' }}>Residencial</option>
+                                <option value="Comercial" {{ 'selected' if obra.tipo == 'Comercial' }}>Comercial</option>
+                                <option value="Industrial" {{ 'selected' if obra.tipo == 'Industrial' }}>Industrial</option>
+                                <option value="Infraestrutura" {{ 'selected' if obra.tipo == 'Infraestrutura' }}>Infraestrutura</option>
+                                <option value="Reforma" {{ 'selected' if obra.tipo == 'Reforma' }}>Reforma</option>
+                                <option value="Outros" {{ 'selected' if obra.tipo == 'Outros' }}>Outros</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="responsavel_id" class="form-label">Responsável *</label>
+                            <select class="form-select" id="responsavel_id" name="responsavel_id" required>
+                                {% for user in users %}
+                                <option value="{{ user.id }}" {{ 'selected' if user.id == obra.responsavel_id }}>{{ user.nome }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="status" class="form-label">Status</label>
+                            <select class="form-select" id="status" name="status">
+                                <option value="ativa" {{ 'selected' if obra.status == 'ativa' }}>Ativa</option>
+                                <option value="pausada" {{ 'selected' if obra.status == 'pausada' }}>Pausada</option>
+                                <option value="concluida" {{ 'selected' if obra.status == 'concluida' }}>Concluída</option>
+                                <option value="cancelada" {{ 'selected' if obra.status == 'cancelada' }}>Cancelada</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="data_inicio" class="form-label">Data de Início</label>
+                            <input type="date" class="form-control" id="data_inicio" name="data_inicio" 
+                                   value="{{ obra.data_inicio.strftime('%Y-%m-%d') if obra.data_inicio }}">
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="data_fim" class="form-label">Data Prevista de Conclusão</label>
+                            <input type="date" class="form-control" id="data_fim" name="data_fim"
+                                   value="{{ obra.data_fim.strftime('%Y-%m-%d') if obra.data_fim }}">
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="endereco" class="form-label">Endereço</label>
+                        <textarea class="form-control" id="endereco" name="endereco" rows="2">{{ obra.endereco or '' }}</textarea>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Localização GPS</label>
+                        <div class="row">
+                            <div class="col-md-4">
+                                <button type="button" class="btn btn-outline-primary w-100 mb-2" onclick="getCurrentLocation()">
+                                    <i class="fas fa-map-marker-alt me-1"></i>Obter GPS
+                                </button>
+                            </div>
+                            <div class="col-md-4">
+                                <input type="number" class="form-control" id="latitude_obra" name="latitude_obra" 
+                                       placeholder="Latitude" step="any" value="{{ obra.latitude_obra or '' }}">
+                            </div>
+                            <div class="col-md-4">
+                                <input type="number" class="form-control" id="longitude_obra" name="longitude_obra" 
+                                       placeholder="Longitude" step="any" value="{{ obra.longitude_obra or '' }}">
+                            </div>
+                        </div>
+                        <input type="hidden" id="endereco_gps" name="endereco_gps" value="{{ obra.endereco_gps or '' }}">
+                        <div id="locationStatus" class="mt-2"></div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="descricao" class="form-label">Descrição</label>
+                        <textarea class="form-control" id="descricao" name="descricao" rows="4">{{ obra.descricao or '' }}</textarea>
+                    </div>
+
+                    <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+                        <a href="{{ url_for('projects') }}" class="btn btn-secondary me-md-2">Cancelar</a>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-save me-1"></i>Salvar Alterações
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+// Override the fillLocationFields function for project editing
+function fillProjectLocationFields(latitude, longitude) {
+    const latField = document.getElementById('latitude_obra');
+    const lngField = document.getElementById('longitude_obra');
+    
+    if (latField) latField.value = latitude;
+    if (lngField) lngField.value = longitude;
+}
+
+// Override the geolocation success handler for project editing
+if (typeof GeoLocation !== 'undefined') {
+    const originalFillFields = GeoLocation.fillLocationFields;
+    GeoLocation.fillLocationFields = function(latitude, longitude) {
+        fillProjectLocationFields(latitude, longitude);
+    };
+}
+</script>
+{% endblock %}

@@ -63,7 +63,6 @@ class Relatorio(db.Model):
     
     # Relationships
     fotos = db.relationship('Foto', backref='relatorio', lazy=True, cascade='all, delete-orphan')
-    reembolso = db.relationship('Reembolso', backref='relatorio', uselist=False, cascade='all, delete-orphan')
     aprovador = db.relationship('User', foreign_keys=[aprovador_id], backref='relatorios_aprovados')
     
     @property
@@ -134,15 +133,4 @@ class Alerta(db.Model):
     status = db.Column(db.String(20), default='pendente')  # 'pendente', 'resolvido'
     data_criacao = db.Column(db.DateTime, default=datetime.utcnow)
 
-class Reembolso(db.Model):
-    __tablename__ = 'reembolsos'
-    
-    id = db.Column(db.Integer, primary_key=True)
-    relatorio_id = db.Column(db.Integer, db.ForeignKey('relatorios.id'), nullable=False)
-    quilometragem = db.Column(db.Float, default=0)
-    alimentacao = db.Column(db.Float, default=0)
-    viagens = db.Column(db.Float, default=0)
-    outros = db.Column(db.Float, default=0)
-    valor_total = db.Column(db.Float, default=0)
-    observacoes = db.Column(db.Text)
-    data_criacao = db.Column(db.DateTime, default=datetime.utcnow)
+

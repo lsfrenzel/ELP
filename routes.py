@@ -9,7 +9,7 @@ from datetime import datetime, date, timedelta
 from functools import wraps
 
 from app import app, db, mail
-from models import User, Obra, Relatorio, Checklist, Contato, Foto, Alerta, Reembolso
+from models import User, Obra, Relatorio, Checklist, Contato, Foto, Alerta
 from utils import send_email, generate_pdf_report, allowed_file
 
 def admin_required(f):
@@ -185,6 +185,155 @@ def create_project():
     
     flash('Obra criada com sucesso!', 'success')
     return redirect(url_for('projects'))
+
+@app.route('/projects/<int:projeto_id>/edit')
+@login_required
+@admin_required
+def edit_project(projeto_id):
+    obra = Obra.query.get_or_404(projeto_id)
+    users = User.query.all()
+    return render_template('edit_project.html', obra=obra, users=users)
+
+@app.route('/projects/<int:projeto_id>/edit', methods=['POST'])
+@login_required
+@admin_required
+def update_project(projeto_id):
+    obra = Obra.query.get_or_404(projeto_id)
+    
+    obra.nome = request.form.get('nome')
+    obra.tipo = request.form.get('tipo')
+    obra.responsavel_id = request.form.get('responsavel_id')
+    obra.endereco = request.form.get('endereco')
+    obra.endereco_gps = request.form.get('endereco_gps')
+    obra.latitude_obra = float(request.form.get('latitude_obra')) if request.form.get('latitude_obra') else None
+    obra.longitude_obra = float(request.form.get('longitude_obra')) if request.form.get('longitude_obra') else None
+    obra.descricao = request.form.get('descricao')
+    obra.status = request.form.get('status', 'ativa')
+    
+    # Parse dates if provided
+    data_inicio = request.form.get('data_inicio')
+    data_fim = request.form.get('data_fim')
+    
+    if data_inicio:
+        obra.data_inicio = datetime.strptime(data_inicio, '%Y-%m-%d').date()
+    if data_fim:
+        obra.data_fim = datetime.strptime(data_fim, '%Y-%m-%d').date()
+    
+    db.session.commit()
+    
+    flash('Obra atualizada com sucesso!', 'success')
+    return redirect(url_for('projects'))
+
+# User Management Routes
+@app.route('/admin/users')
+@login_required
+@admin_required
+def manage_users():
+    users = User.query.all()
+    return render_template('manage_users.html', users=users)
+
+@app.route('/admin/users/<int:user_id>/toggle-status', methods=['POST'])
+@login_required
+@admin_required
+def toggle_user_status(user_id):
+    user = User.query.get_or_404(user_id)
+    
+    # Prevent admin from deactivating themselves
+    if user.id == current_user.id:
+        flash('Você não pode desativar sua própria conta.', 'error')
+        return redirect(url_for('manage_users'))
+    
+    # Toggle user role or add inactive status if needed
+    # For now, we'll toggle between 'user' and 'inactive'
+    if user.role == 'inactive':
+        user.role = 'user'
+        flash(f'Usuário {user.nome} foi ativado.', 'success')
+    else:
+        user.role = 'inactive' if user.role != 'admin' else 'admin'
+        if user.role == 'inactive':
+            flash(f'Usuário {user.nome} foi desativado.', 'warning')
+    
+    db.session.commit()
+    return redirect(url_for('manage_users'))
+
+# Admin Report Workflow Routes
+@app.route('/admin/reports/pending')
+@login_required
+@admin_required
+def pending_reports():
+    relatorios_pendentes = Relatorio.query.filter_by(status='pendente').order_by(Relatorio.data_criacao.desc()).all()
+    return render_template('admin_reports.html', relatorios=relatorios_pendentes, title='Relatórios Pendentes')
+
+
+
+@app.route('/reports/<int:relatorio_id>/edit')
+@login_required
+def edit_report(relatorio_id):
+    relatorio = Relatorio.query.get_or_404(relatorio_id)
+    
+    # Verify user has access to edit this report
+    if current_user.role != 'admin' and relatorio.usuario_id != current_user.id:
+        flash('Acesso negado a este relatório.', 'error')
+        return redirect(url_for('reports'))
+    
+    # Only allow editing if report is rejected or pending (for admins)
+    if relatorio.status not in ['reprovado', 'pendente']:
+        flash('Este relatório não pode ser editado.', 'error')
+        return redirect(url_for('reports'))
+    
+    if current_user.role == 'admin':
+        obras = Obra.query.all()
+    else:
+        obras = Obra.query.filter_by(responsavel_id=current_user.id).all()
+    
+    checklists = Checklist.query.filter_by(ativo=True).all()
+    
+    return render_template('edit_report.html', relatorio=relatorio, obras=obras, checklists=checklists)
+
+@app.route('/reports/<int:relatorio_id>/edit', methods=['POST'])
+@login_required
+def update_report(relatorio_id):
+    relatorio = Relatorio.query.get_or_404(relatorio_id)
+    
+    # Verify user has access to edit this report
+    if current_user.role != 'admin' and relatorio.usuario_id != current_user.id:
+        flash('Acesso negado a este relatório.', 'error')
+        return redirect(url_for('reports'))
+    
+    # Only allow editing if report is rejected or pending (for admins)
+    if relatorio.status not in ['reprovado', 'pendente']:
+        flash('Este relatório não pode ser editado.', 'error')
+        return redirect(url_for('reports'))
+    
+    # Update report data
+    relatorio.atividades = request.form.get('atividades')
+    
+    # Process checklist data
+    checklist_data = {}
+    for key in request.form:
+        if key.startswith('checklist_'):
+            field_name = key.replace('checklist_', '')
+            checklist_data[field_name] = request.form[key]
+    relatorio.checklist_data = checklist_data
+    
+    # Update location if provided
+    latitude = request.form.get('latitude')
+    longitude = request.form.get('longitude')
+    if latitude and longitude:
+        relatorio.latitude = float(latitude)
+        relatorio.longitude = float(longitude)
+    
+    # Reset status to pending if it was rejected
+    if relatorio.status == 'reprovado':
+        relatorio.status = 'pendente'
+        relatorio.aprovador_id = None
+        relatorio.data_aprovacao = None
+        relatorio.prazo_revisao = None
+    
+    db.session.commit()
+    
+    flash('Relatório atualizado e enviado para nova aprovação!', 'success')
+    return redirect(url_for('reports'))
 
 @app.route('/reports')
 @login_required
@@ -471,30 +620,53 @@ def admin_reports():
 @admin_required
 def approve_report(relatorio_id):
     relatorio = Relatorio.query.get_or_404(relatorio_id)
+    observacoes = request.form.get('observacoes_admin', request.form.get('observacoes', ''))
     
     relatorio.status = 'aprovado'
     relatorio.aprovador_id = current_user.id
-    relatorio.data_aprovacao = datetime.now()
-    relatorio.observacoes_admin = request.form.get('observacoes', '')
+    relatorio.data_aprovacao = datetime.utcnow()
+    relatorio.observacoes_admin = observacoes
     
     db.session.commit()
     
+    # Send notification email to user
+    try:
+        if relatorio.usuario.email:
+            send_email(
+                to_email=relatorio.usuario.email,
+                subject=f'Relatório #{relatorio.numero_seq} Aprovado - {relatorio.obra.nome}',
+                template='email/report_approved.html',
+                relatorio=relatorio,
+                observacoes=observacoes
+            )
+    except Exception as e:
+        print(f"Erro ao enviar email: {e}")
+    
     flash('Relatório aprovado com sucesso!', 'success')
-    return redirect(url_for('admin_reports'))
+    return redirect(request.form.get('redirect_to', url_for('admin_reports')))
 
 @app.route('/admin/reports/<int:relatorio_id>/reject', methods=['POST'])
 @login_required
 @admin_required
 def reject_report(relatorio_id):
     relatorio = Relatorio.query.get_or_404(relatorio_id)
-    
-    observacoes = request.form.get('observacoes', '')
+    observacoes = request.form.get('observacoes_admin', request.form.get('observacoes', ''))
+    prazo_revisao_str = request.form.get('prazo_revisao', '')
     prazo_dias = int(request.form.get('prazo_dias', 7))
+    
+    if not observacoes:
+        flash('É obrigatório informar o motivo da reprovação.', 'error')
+        return redirect(request.form.get('redirect_to', url_for('admin_reports')))
     
     relatorio.status = 'reprovado'
     relatorio.aprovador_id = current_user.id
     relatorio.observacoes_admin = observacoes
-    relatorio.prazo_revisao = datetime.now() + timedelta(days=prazo_dias)
+    
+    # Set revision deadline
+    if prazo_revisao_str:
+        relatorio.prazo_revisao = datetime.strptime(prazo_revisao_str, '%Y-%m-%d')
+    else:
+        relatorio.prazo_revisao = datetime.utcnow() + timedelta(days=prazo_dias)
     
     db.session.commit()
     
@@ -506,10 +678,25 @@ def reject_report(relatorio_id):
     alerta.status = 'pendente'
     
     db.session.add(alerta)
+    
+    # Send notification email to user
+    try:
+        if relatorio.usuario.email:
+            send_email(
+                to_email=relatorio.usuario.email,
+                subject=f'Relatório #{relatorio.numero_seq} Reprovado - {relatorio.obra.nome}',
+                template='email/report_rejected.html',
+                relatorio=relatorio,
+                observacoes=observacoes,
+                prazo_revisao=relatorio.prazo_revisao
+            )
+    except Exception as e:
+        print(f"Erro ao enviar email: {e}")
+    
     db.session.commit()
     
-    flash(f'Relatório reprovado. Usuário tem até {relatorio.prazo_revisao.strftime("%d/%m/%Y")} para revisar.', 'warning')
-    return redirect(url_for('admin_reports'))
+    flash('Relatório reprovado. Usuário foi notificado para realizar correções.', 'warning')
+    return redirect(request.form.get('redirect_to', url_for('admin_reports')))
 
 @app.route('/api/checklists/<int:checklist_id>')
 @login_required
