@@ -4,16 +4,16 @@ from flask import Flask
 from flask_login import LoginManager
 from flask_mail import Mail
 from werkzeug.middleware.proxy_fix import ProxyFix
-from models import db, User
+from models import db
 
 logging.basicConfig(level=logging.DEBUG)
 
 app = Flask(__name__)
-app.secret_key = os.environ.get("SESSION_SECRET", "dev-secret-key-change-in-production")
+app.secret_key = os.environ.get("SESSION_SECRET")
 app.wsgi_app = ProxyFix(app.wsgi_app, x_proto=1, x_host=1)
 
 # Database configuration
-app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:///elp_obras.db"
+app.config["SQLALCHEMY_DATABASE_URI"] = os.environ.get("DATABASE_URL")
 app.config["SQLALCHEMY_ENGINE_OPTIONS"] = {
     "pool_recycle": 300,
     "pool_pre_ping": True,
@@ -41,13 +41,18 @@ mail = Mail(app)
 
 @login_manager.user_loader
 def load_user(user_id):
+    from models import User
     return User.query.get(int(user_id))
 
 # Import routes after app initialization
 from routes import *
 
 with app.app_context():
+    # Import all models to ensure tables are created
+    from models import User, Checklist, Obra, Relatorio, Contato, Foto, Alerta, Reembolso
+    
     db.create_all()
+    
     # Create default admin user if none exists
     admin_user = User.query.filter_by(email='admin@elp.com').first()
     if not admin_user:
@@ -62,7 +67,6 @@ with app.app_context():
         print("Admin user created: admin@elp.com / admin123")
     
     # Create default construction audit checklist if none exists
-    from models import Checklist
     if not Checklist.query.filter_by(nome='Auditoria de Obra').first():
         checklist = Checklist()
         checklist.nome = 'Auditoria de Obra'
@@ -92,7 +96,6 @@ with app.app_context():
         print("Default construction audit checklist created")
     
     # Create a sample construction project if none exists
-    from models import Obra
     try:
         sample_obra_exists = Obra.query.first()
     except:
