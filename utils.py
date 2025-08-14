@@ -44,9 +44,16 @@ def send_email(subject, recipients, body, attachments=None):
 def generate_pdf_report(relatorio):
     """Generate PDF report for a given report"""
     try:
-        # Create filename
-        filename = f"relatorio_{relatorio.obra.nome}_{relatorio.numero_seq:03d}.pdf"
-        filepath = os.path.join(current_app.config['UPLOAD_FOLDER'], filename)
+        # Create filename - sanitize the project name for file system
+        safe_obra_name = "".join(c for c in relatorio.obra.nome if c.isalnum() or c in (' ', '-', '_')).rstrip()
+        safe_obra_name = safe_obra_name.replace(' ', '_')
+        filename = f"relatorio_{safe_obra_name}_{relatorio.numero_seq:03d}.pdf"
+        
+        # Ensure upload folder exists
+        upload_folder = current_app.config['UPLOAD_FOLDER']
+        os.makedirs(upload_folder, exist_ok=True)
+        
+        filepath = os.path.join(upload_folder, filename)
         
         # Create PDF
         doc = SimpleDocTemplate(filepath, pagesize=A4)

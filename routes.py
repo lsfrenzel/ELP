@@ -75,12 +75,11 @@ def register():
             return render_template('register.html')
         
         # Create new user
-        user = User(
-            nome=nome,
-            email=email,
-            senha_hash=generate_password_hash(password),
-            role=role
-        )
+        user = User()
+        user.nome = nome
+        user.email = email
+        user.senha_hash = generate_password_hash(password)
+        user.role = role
         
         db.session.add(user)
         try:
@@ -150,13 +149,12 @@ def create_project():
     endereco = request.form.get('endereco')
     descricao = request.form.get('descricao')
     
-    obra = Obra(
-        nome=nome,
-        tipo=tipo,
-        responsavel_id=responsavel_id,
-        endereco=endereco,
-        descricao=descricao
-    )
+    obra = Obra()
+    obra.nome = nome
+    obra.tipo = tipo
+    obra.responsavel_id = responsavel_id
+    obra.endereco = endereco
+    obra.descricao = descricao
     
     db.session.add(obra)
     db.session.commit()
@@ -199,8 +197,9 @@ def create_report_form():
         obras = Obra.query.filter_by(responsavel_id=current_user.id).all()
     
     checklists = Checklist.query.filter_by(ativo=True).all()
+    today_date = datetime.now().strftime('%Y-%m-%d')
     
-    return render_template('create_report.html', obras=obras, checklists=checklists)
+    return render_template('create_report.html', obras=obras, checklists=checklists, today_date=today_date)
 
 @app.route('/reports/create', methods=['POST'])
 @login_required
@@ -230,15 +229,14 @@ def create_report():
     last_report = Relatorio.query.filter_by(obra_id=obra_id).order_by(Relatorio.numero_seq.desc()).first()
     numero_seq = (last_report.numero_seq + 1) if last_report else 1
     
-    relatorio = Relatorio(
-        obra_id=obra_id,
-        usuario_id=current_user.id,
-        numero_seq=numero_seq,
-        atividades=atividades,
-        checklist_data=checklist_data,
-        latitude=float(latitude) if latitude else None,
-        longitude=float(longitude) if longitude else None
-    )
+    relatorio = Relatorio()
+    relatorio.obra_id = obra_id
+    relatorio.usuario_id = current_user.id
+    relatorio.numero_seq = numero_seq
+    relatorio.atividades = atividades
+    relatorio.checklist_data = checklist_data
+    relatorio.latitude = float(latitude) if latitude else None
+    relatorio.longitude = float(longitude) if longitude else None
     
     db.session.add(relatorio)
     db.session.commit()
@@ -277,13 +275,12 @@ def create_contact():
             flash('Acesso negado a esta obra.', 'error')
             return redirect(url_for('contacts'))
     
-    contato = Contato(
-        nome=nome,
-        email=email,
-        telefone=telefone,
-        obra_id=obra_id,
-        cargo=cargo
-    )
+    contato = Contato()
+    contato.nome = nome
+    contato.email = email
+    contato.telefone = telefone
+    contato.obra_id = obra_id
+    contato.cargo = cargo
     
     db.session.add(contato)
     db.session.commit()
@@ -334,13 +331,12 @@ def upload_photo(relatorio_id):
         except Exception as e:
             file_size = os.path.getsize(filepath)
         
-        foto = Foto(
-            relatorio_id=relatorio_id,
-            tipo_servico=tipo_servico,
-            caminho_arquivo=filename,
-            tamanho=file_size,
-            descricao=descricao
-        )
+        foto = Foto()
+        foto.relatorio_id = relatorio_id
+        foto.tipo_servico = tipo_servico
+        foto.caminho_arquivo = filename
+        foto.tamanho = file_size
+        foto.descricao = descricao
         
         db.session.add(foto)
         db.session.commit()
@@ -383,14 +379,21 @@ def generate_report_pdf(report_id):
         return redirect(url_for('reports'))
     
     try:
-        pdf_path = generate_pdf_report(relatorio)
+        pdf_filename = generate_pdf_report(relatorio)
         
-        if pdf_path and os.path.exists(pdf_path):
-            return send_file(pdf_path, as_attachment=True, 
-                           download_name=f'relatorio_{relatorio.numero_seq:03d}_{relatorio.obra.nome}.pdf')
-        else:
-            flash('Erro ao gerar PDF do relatório.', 'error')
-            return redirect(url_for('reports'))
+        if pdf_filename:
+            pdf_path = os.path.join(app.config['UPLOAD_FOLDER'], pdf_filename)
+            if os.path.exists(pdf_path):
+                # Update the report with the PDF path
+                relatorio.pdf_path = pdf_filename
+                db.session.commit()
+                
+                safe_obra_name = "".join(c for c in relatorio.obra.nome if c.isalnum() or c in (' ', '-', '_')).rstrip()
+                return send_file(pdf_path, as_attachment=True, 
+                               download_name=f'relatorio_{relatorio.numero_seq:03d}_{safe_obra_name}.pdf')
+        
+        flash('Erro ao gerar PDF do relatório.', 'error')
+        return redirect(url_for('reports'))
     except Exception as e:
         flash(f'Erro ao gerar PDF: {str(e)}', 'error')
         return redirect(url_for('reports'))
