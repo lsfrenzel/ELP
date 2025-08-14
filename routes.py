@@ -670,6 +670,8 @@ def reject_report(relatorio_id):
     
     db.session.commit()
     
+    # Create alert after committing the report changes
+    
     # Create alert for the user
     alerta = Alerta()
     alerta.obra_id = relatorio.obra_id

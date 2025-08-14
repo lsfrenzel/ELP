@@ -66,7 +66,7 @@
                         <tbody>
                             {% for relatorio in relatorios %}
                             <tr>
-                                <td><strong>#{{ relatorio.numero_seq|sprintf('%03d') }}</strong></td>
+                                <td><strong>#{{ '{:03d}'.format(relatorio.numero_seq) }}</strong></td>
                                 <td>{{ relatorio.obra.nome }}</td>
                                 <td>{{ relatorio.usuario.nome }}</td>
                                 <td>{{ relatorio.data_criacao.strftime('%d/%m/%Y %H:%M') }}</td>
@@ -89,14 +89,14 @@
                                 </td>
                                 <td>
                                     <div class="btn-group btn-group-sm">
-                                        <button type="button" class="btn btn-outline-primary" onclick="viewReport({{ relatorio.id }})">
+                                        <button type="button" class="btn btn-outline-primary" onclick="viewReport('{{ relatorio.id }}')">
                                             <i class="fas fa-eye"></i>
                                         </button>
                                         {% if relatorio.status == 'pendente' %}
-                                        <button type="button" class="btn btn-outline-success" onclick="approveReport({{ relatorio.id }})">
+                                        <button type="button" class="btn btn-outline-success" onclick="approveReport('{{ relatorio.id }}')">
                                             <i class="fas fa-check"></i>
                                         </button>
-                                        <button type="button" class="btn btn-outline-danger" onclick="rejectReport({{ relatorio.id }})">
+                                        <button type="button" class="btn btn-outline-danger" onclick="rejectReport('{{ relatorio.id }}')">
                                             <i class="fas fa-times"></i>
                                         </button>
                                         {% endif %}
@@ -152,7 +152,7 @@
                 <div class="modal-body">
                     <div class="mb-3">
                         <label for="approveObservacoes" class="form-label">Observações (opcional)</label>
-                        <textarea class="form-control" id="approveObservacoes" name="observacoes" rows="3"
+                        <textarea class="form-control" id="approveObservacoes" name="observacoes_admin" rows="3"
                                   placeholder="Adicione observações sobre a aprovação..."></textarea>
                     </div>
                 </div>
@@ -179,7 +179,7 @@
                 <div class="modal-body">
                     <div class="mb-3">
                         <label for="rejectObservacoes" class="form-label">Observações *</label>
-                        <textarea class="form-control" id="rejectObservacoes" name="observacoes" rows="3" required
+                        <textarea class="form-control" id="rejectObservacoes" name="observacoes_admin" rows="3" required
                                   placeholder="Explique os motivos da reprovação e o que deve ser corrigido..."></textarea>
                     </div>
                     <div class="mb-3">

@@ -166,12 +166,39 @@ def generate_pdf_report(relatorio):
                 try:
                     photo_path = os.path.join(upload_folder, foto.caminho_arquivo)
                     if os.path.exists(photo_path):
-                        # Resize image to fit in PDF
-                        img = Image(photo_path, width=4*inch, height=3*inch)
-                        story.append(img)
-                        story.append(Spacer(1, 6))
+                        # Check if it's a valid image and resize it
+                        from PIL import Image as PILImage
+                        
+                        # Open and process the image
+                        with PILImage.open(photo_path) as pil_img:
+                            # Convert to RGB if necessary (for JPEG output)
+                            if pil_img.mode in ('RGBA', 'LA', 'P'):
+                                pil_img = pil_img.convert('RGB')
+                            
+                            # Calculate aspect ratio and resize
+                            max_width = 4 * inch
+                            max_height = 3 * inch
+                            
+                            img_width, img_height = pil_img.size
+                            aspect_ratio = img_width / img_height
+                            
+                            if aspect_ratio > max_width / max_height:
+                                # Image is wider - fit to width
+                                new_width = max_width
+                                new_height = max_width / aspect_ratio
+                            else:
+                                # Image is taller - fit to height
+                                new_height = max_height
+                                new_width = max_height * aspect_ratio
+                            
+                            # Add the image to PDF
+                            img = Image(photo_path, width=new_width, height=new_height)
+                            img.hAlign = 'CENTER'
+                            story.append(img)
+                            story.append(Spacer(1, 6))
                     else:
                         story.append(Paragraph(f"Arquivo: {foto.caminho_arquivo} (não encontrado)", styles['Normal']))
+                        current_app.logger.warning(f"Image file not found: {photo_path}")
                 except Exception as img_error:
                     story.append(Paragraph(f"Erro ao carregar imagem: {foto.caminho_arquivo}", styles['Normal']))
                     current_app.logger.error(f"Error loading image in PDF: {str(img_error)}")
