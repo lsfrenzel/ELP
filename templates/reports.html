@@ -65,7 +65,7 @@
                     {% for relatorio in relatorios %}
                     <tr>
                         <td>
-                            <span class="fw-bold">#{{ "%03d"|format(relatorio.numero_seq) }}</span>
+                            <span class="fw-bold">{{ relatorio.codigo_relatorio or "#{:03d}".format(relatorio.numero_seq) }}</span>
                         </td>
                         <td>
                             <div class="d-flex align-items-center">

@@ -66,7 +66,7 @@
                         <tbody>
                             {% for relatorio in relatorios %}
                             <tr>
-                                <td><strong>#{{ '{:03d}'.format(relatorio.numero_seq) }}</strong></td>
+                                <td><strong>{{ relatorio.codigo_relatorio or '#{:03d}'.format(relatorio.numero_seq) }}</strong></td>
                                 <td>{{ relatorio.obra.nome }}</td>
                                 <td>{{ relatorio.usuario.nome }}</td>
                                 <td>{{ relatorio.data_criacao.strftime('%d/%m/%Y %H:%M') }}</td>
@@ -206,10 +206,90 @@
 
 {% block extra_scripts %}
 <script>
-function viewReport(reportId) {
-    // Placeholder for report details view
-    document.getElementById('reportDetails').innerHTML = '<div class="text-center py-4"><i class="fas fa-spinner fa-spin"></i> Carregando...</div>';
-    new bootstrap.Modal(document.getElementById('reportModal')).show();
+async function viewReport(reportId) {
+    const modal = new bootstrap.Modal(document.getElementById('reportModal'));
+    const detailsContainer = document.getElementById('reportDetails');
+    
+    detailsContainer.innerHTML = '<div class="text-center py-4"><i class="fas fa-spinner fa-spin"></i> Carregando...</div>';
+    modal.show();
+    
+    try {
+        const response = await fetch(`/api/reports/${reportId}`);
+        const data = await response.json();
+        
+        if (response.ok) {
+            let historyHtml = '';
+            if (data.historico && data.historico.length > 0) {
+                historyHtml = `
+                    <h6><i class="fas fa-history me-2"></i>Histórico de Aprovações</h6>
+                    <div class="border rounded p-2 mb-3" style="max-height: 200px; overflow-y: auto;">
+                        ${data.historico.map(h => `
+                            <div class="d-flex justify-content-between align-items-start mb-2">
+                                <div>
+                                    <span class="badge ${h.acao === 'aprovado' ? 'bg-success' : 'bg-danger'}">${h.acao === 'aprovado' ? 'Aprovado' : 'Reprovado'}</span>
+                                    por ${h.aprovador_nome}
+                                    ${h.observacoes ? `<br><small class="text-muted">${h.observacoes}</small>` : ''}
+                                </div>
+                                <small class="text-muted">${new Date(h.data_acao).toLocaleDateString('pt-BR')}</small>
+                            </div>
+                        `).join('<hr class="my-2">')}
+                    </div>
+                `;
+            }
+            
+            let photosHtml = '';
+            if (data.fotos && data.fotos.length > 0) {
+                photosHtml = `
+                    <h6><i class="fas fa-camera me-2"></i>Fotos (${data.fotos.length})</h6>
+                    <div class="row">
+                        ${data.fotos.map(foto => `
+                            <div class="col-md-6 mb-2">
+                                <div class="card">
+                                    <img src="/static/uploads/${foto.caminho_arquivo}" class="card-img-top" style="height: 150px; object-fit: cover;">
+                                    <div class="card-body p-2">
+                                        <small><strong>${foto.tipo_servico}</strong></small>
+                                        ${foto.descricao ? `<br><small class="text-muted">${foto.descricao}</small>` : ''}
+                                    </div>
+                                </div>
+                            </div>
+                        `).join('')}
+                    </div>
+                `;
+            }
+            
+            detailsContainer.innerHTML = `
+                <div class="row">
+                    <div class="col-md-6">
+                        <h6><i class="fas fa-info-circle me-2"></i>Informações Gerais</h6>
+                        <p><strong>Código:</strong> ${data.codigo_relatorio || `#${String(data.numero_seq).padStart(3, '0')}`}</p>
+                        <p><strong>Obra:</strong> ${data.obra_nome}</p>
+                        <p><strong>Usuário:</strong> ${data.usuario_nome}</p>
+                        <p><strong>Data:</strong> ${new Date(data.data_criacao).toLocaleDateString('pt-BR')}</p>
+                        <p><strong>Status:</strong> 
+                            <span class="badge ${data.status === 'aprovado' ? 'bg-success' : data.status === 'reprovado' ? 'bg-danger' : 'bg-warning text-dark'}">${data.status_display}</span>
+                        </p>
+                        ${data.endereco ? `<p><strong>Localização:</strong> ${data.endereco}</p>` : ''}
+                    </div>
+                    <div class="col-md-6">
+                        <h6><i class="fas fa-tasks me-2"></i>Atividades</h6>
+                        <p>${data.atividades || 'Nenhuma atividade descrita'}</p>
+
+                        ${data.observacoes_admin ? `
+                            <h6><i class="fas fa-exclamation-triangle me-2"></i>Observações do Admin</h6>
+                            <p class="text-danger">${data.observacoes_admin}</p>
+                        ` : ''}
+                    </div>
+                </div>
+                <hr>
+                ${historyHtml}
+                ${photosHtml}
+            `;
+        } else {
+            detailsContainer.innerHTML = '<div class="alert alert-danger">Erro ao carregar detalhes do relatório</div>';
+        }
+    } catch (error) {
+        detailsContainer.innerHTML = '<div class="alert alert-danger">Erro de conexão</div>';
+    }
 }
 
 function approveReport(reportId) {

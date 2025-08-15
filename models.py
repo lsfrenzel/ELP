@@ -48,6 +48,8 @@ class Relatorio(db.Model):
     obra_id = db.Column(db.Integer, db.ForeignKey('obras.id'), nullable=False)
     usuario_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
     numero_seq = db.Column(db.Integer, nullable=False)
+    codigo_relatorio = db.Column(db.String(20), nullable=False)  # ELP-2025-001-v1
+    versao = db.Column(db.Integer, default=1)
     data = db.Column(db.Date, default=datetime.utcnow)
     atividades = db.Column(db.Text)
     checklist_json = db.Column(db.Text)

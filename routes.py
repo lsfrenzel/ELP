@@ -21,6 +21,18 @@ def admin_required(f):
         return f(*args, **kwargs)
     return decorated_function
 
+def active_user_required(f):
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        if not current_user.is_authenticated:
+            return redirect(url_for('login'))
+        if current_user.role == 'inactive':
+            logout_user()
+            flash('Sua conta foi desativada. Entre em contato com o administrador.', 'error')
+            return redirect(url_for('login'))
+        return f(*args, **kwargs)
+    return decorated_function
+
 @app.route('/')
 def index():
     if current_user.is_authenticated:
@@ -39,6 +51,11 @@ def login():
         user = User.query.filter_by(email=email).first()
         
         if user and user.senha_hash and check_password_hash(user.senha_hash, password):
+            # Check if user is active
+            if user.role == 'inactive':
+                flash('Sua conta foi desativada. Entre em contato com o administrador.', 'error')
+                return render_template('login.html')
+            
             login_user(user)
             flash('Login realizado com sucesso!', 'success')
             
@@ -318,7 +335,6 @@ def update_report(relatorio_id):
 
     # Update report data
     relatorio.atividades = request.form.get('atividades')
-    relatorio.observacoes = request.form.get('observacoes')
     relatorio.obra_id = request.form.get('obra_id')
     relatorio.endereco = request.form.get('endereco')
     
@@ -378,13 +394,19 @@ def update_report(relatorio_id):
                 )
                 db.session.add(foto)
     
-    # Reset status to pending if it was rejected
+    # Reset status to pending if it was rejected and increment version
     if relatorio.status == 'reprovado':
         relatorio.status = 'pendente'
         relatorio.aprovador_id = None
         relatorio.data_aprovacao = None
         relatorio.observacoes_admin = None
         relatorio.prazo_revisao = None
+        
+        # Increment version
+        relatorio.versao = (relatorio.versao or 1) + 1
+        # Update report code with new version
+        year = datetime.now().year
+        relatorio.codigo_relatorio = f"ELP-{year}-{relatorio.numero_seq:03d}-v{relatorio.versao}"
     
     # Update last edit timestamp
     relatorio.data_ultima_edicao = datetime.utcnow()
@@ -461,10 +483,16 @@ def create_report():
     last_report = Relatorio.query.filter_by(obra_id=obra_id).order_by(Relatorio.numero_seq.desc()).first()
     numero_seq = (last_report.numero_seq + 1) if last_report else 1
     
+    # Generate unique report code
+    year = datetime.now().year
+    codigo_relatorio = f"ELP-{year}-{numero_seq:03d}-v1"
+    
     relatorio = Relatorio()
     relatorio.obra_id = obra_id
     relatorio.usuario_id = current_user.id
     relatorio.numero_seq = numero_seq
+    relatorio.codigo_relatorio = codigo_relatorio
+    relatorio.versao = 1
     relatorio.atividades = atividades
     relatorio.checklist_data = checklist_data
     relatorio.latitude = float(latitude) if latitude else None
@@ -590,6 +618,58 @@ def get_checklist(checklist_id):
         'nome': checklist.nome,
         'campos': checklist.campos,
         'obrigatorios': checklist.obrigatorios
+    })
+
+@app.route('/api/reports/<int:report_id>')
+@login_required
+def get_report_details(report_id):
+    relatorio = Relatorio.query.get_or_404(report_id)
+    
+    # Check permissions
+    if current_user.role != 'admin' and relatorio.usuario_id != current_user.id:
+        return jsonify({'error': 'Acesso negado'}), 403
+    
+    # Get history
+    historico = HistoricoAprovacao.query.filter_by(relatorio_id=report_id).order_by(HistoricoAprovacao.data_acao.desc()).all()
+    
+    return jsonify({
+        'id': relatorio.id,
+        'codigo_relatorio': relatorio.codigo_relatorio or f"#{relatorio.numero_seq:03d}",
+        'numero_seq': relatorio.numero_seq,
+        'versao': relatorio.versao or 1,
+        'obra_nome': relatorio.obra.nome,
+        'usuario_nome': relatorio.usuario.nome,
+        'data_criacao': relatorio.data_criacao.isoformat(),
+        'data_ultima_edicao': relatorio.data_ultima_edicao.isoformat() if hasattr(relatorio, 'data_ultima_edicao') and relatorio.data_ultima_edicao else relatorio.data_criacao.isoformat(),
+        'atividades': relatorio.atividades,
+        'observacoes_admin': relatorio.observacoes_admin,
+        'status': relatorio.status,
+        'status_display': {
+            'pendente': 'Pendente',
+            'aprovado': 'Aprovado', 
+            'reprovado': 'Reprovado'
+        }.get(relatorio.status, relatorio.status),
+        'endereco': getattr(relatorio, 'endereco', None),
+        'latitude': relatorio.latitude,
+        'longitude': relatorio.longitude,
+        'fotos': [
+            {
+                'id': foto.id,
+                'tipo_servico': foto.tipo_servico,
+                'caminho_arquivo': foto.caminho_arquivo,
+                'descricao': foto.descricao,
+                'data_upload': foto.data_upload.isoformat() if foto.data_upload else datetime.now().isoformat()
+            } for foto in relatorio.fotos
+        ],
+        'historico': [
+            {
+                'id': hist.id,
+                'acao': hist.acao,
+                'aprovador_nome': hist.aprovador.nome,
+                'observacoes': hist.observacoes,
+                'data_acao': hist.data_acao.isoformat()
+            } for hist in historico
+        ]
     })
 
 @app.route('/manifest.json')
